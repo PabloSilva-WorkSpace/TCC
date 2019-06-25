@@ -9,9 +9,8 @@
 
 
 
-byte Comm_appl_SendData_Request(MainData *pData)
+byte Comm_appl_SendData_Request(struct MainData *pData)
 {
-    char *str = "Teste\0";
     switch (pData->Status_Send_Rqt){
       case Comm_appl_Status_Idle:
       {
@@ -19,7 +18,8 @@ byte Comm_appl_SendData_Request(MainData *pData)
       }
       case Comm_appl_Status_Send:
       {
-        Comm_protocol_Send_Frame(str);  
+        Comm_protocol_Send_Frame(&(pData->frame));
+        //Comm_protocol_Send_Frame_v2(&(pData->frame), 8);
         break;
       }
       case Comm_appl_Status_Error:
@@ -32,4 +32,10 @@ byte Comm_appl_SendData_Request(MainData *pData)
       }
     }    
     return 0;
+}
+
+
+void Comm_appl_Set_Header_Frame(byte Break, byte Id_Source, byte Type, byte SID, byte Id_Target, byte Lenght)
+{
+  
 }

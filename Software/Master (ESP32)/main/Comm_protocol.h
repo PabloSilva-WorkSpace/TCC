@@ -8,6 +8,7 @@
 
 /* Headers includes */ 
 #include "main.h"
+#include "Comm_appl.h"
 
 /* Libraries includes */  
 
@@ -16,7 +17,10 @@
 
 
 /* Functions Prototypes */
-void Comm_protocol_Send_Frame(char *);
+void Comm_protocol_Send_Frame(struct Frame *);
+char * structToString(struct Frame *);
 
+void Comm_protocol_Send_Frame_v2(byte *, byte);
+char *structToString_v2(byte *, byte);
 
 #endif

@@ -13,6 +13,7 @@
 #include <WiFi.h> 
 #include <dummy.h>
 #include "driver/uart.h"
+#include "driver/gpio.h"
 
 /* Defines */
 #define LED_ON_BOARD (2)
