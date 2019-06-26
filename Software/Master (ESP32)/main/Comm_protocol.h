@@ -20,7 +20,5 @@
 void Comm_protocol_Send_Frame(struct Frame *);
 char * structToString(struct Frame *);
 
-void Comm_protocol_Send_Frame_v2(byte *, byte);
-char *structToString_v2(byte *, byte);
 
 #endif
