@@ -8,7 +8,7 @@
 #include "Comm_protocol.h"
 
 
-void Comm_protocol_Send_Frame(struct Frame *pFrame)
+void Comm_protocol_Frame_Send_Request(struct Frame *pFrame)
 {
   char *str = NULL;
   int Size;

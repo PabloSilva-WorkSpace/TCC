@@ -8,28 +8,37 @@
 #include "Comm_appl.h"
 
 
-byte Comm_appl_SendData_Request(struct MainData *pMainData)
+byte Comm_appl_FSRM(struct MainData *pMainData)
 {
-    switch (pMainData->Status_Send_Rqt){
-      case Comm_appl_Status_Idle:
-      {
-        break;
-      }
-      case Comm_appl_Status_Send:
-      {
-        Comm_protocol_Send_Frame(&pMainData->scheduleTable->frame);
-        break;
-      }
-      case Comm_appl_Status_Error:
-      {
-        break;
-      } 
-      default:
-      {
-        /*ToDo[PENS] - handle error*/
-      }
-    }    
-    return 0;
+  switch (pMainData->FSRM_State){
+    case FSRM_State_Idle:
+    {
+      break;
+    }
+    case FSRM_State_Send:
+    {
+      Comm_protocol_Frame_Send_Request(&pMainData->scheduleTable->frame);
+      Comm_appl_Request_ChangeOf_FSRM_State(pMainData, FSRM_State_Error);
+      break;
+    }
+    case FSRM_State_Error:
+    {
+      /* ToDo[PENS] error handler */
+      Comm_appl_Request_ChangeOf_FSRM_State(pMainData, FSRM_State_Idle);
+      break;
+    } 
+    default:
+    {
+      /* ToDo[PENS] - error handler to FSRM */
+    }
+  }    
+  return 0;
+}
+
+
+void Comm_appl_Request_ChangeOf_FSRM_State(struct MainData *pMainData, enum FSRM_States nextState)
+{
+  pMainData->FSRM_State = nextState;
 }
 
 
@@ -63,7 +72,7 @@ struct Slot *Comm_appl_Create_Schedule_Table(void)
 {
   byte Data[] = {}; //byte (*Data)[] = {0xA9, 0x1C, 0x47};
   struct Slot *pSlot;
-  pSlot = (struct Slot *) malloc( sizeof(struct Slot *) );
+  pSlot = (struct Slot *) malloc( sizeof(struct Slot *) );  //Alocação dinamica de memória para armazenar uma "struct Slot"
   pSlot->nextSlot = pSlot;
   Comm_appl_Set_Frame_Header(&pSlot->frame, 0x00, 0x55, 0x01, 0xFF, 0x03 + sizeof(Data), 0x01, 0x01);
   Comm_appl_Set_Frame_Data(&pSlot->frame, Data, sizeof(Data));
@@ -76,7 +85,7 @@ void Comm_appl_Insert_Slot(struct Slot *pCurrentSlot)
 {
   struct Slot *pSlot, *pAuxSlot;
   pAuxSlot->nextSlot = pCurrentSlot->nextSlot;
-  pSlot = (struct Slot *) malloc( sizeof(struct Slot *) );
+  pSlot = (struct Slot *) malloc( sizeof(struct Slot *) );  //Alocação dinamica de memória para armazenar uma "struct Slot"
   pSlot->nextSlot = pAuxSlot->nextSlot;
   pCurrentSlot->nextSlot = pSlot;
 }

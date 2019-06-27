@@ -15,15 +15,17 @@ MainData mainData;
 hw_timer_t *timer = NULL;
 uart_config_t uart_config = {.baud_rate = 19200, .data_bits = UART_DATA_8_BITS, .parity = UART_PARITY_DISABLE, .stop_bits = UART_STOP_BITS_1, .flow_ctrl = UART_HW_FLOWCTRL_DISABLE};
 /* Variables into this scope (this file *.c) */
-static int Counter1Of100ms = 0;
-static int Counter2Of100ms = 0;
+static int Counter1Of10ms = 0;
+static int Counter2Of10ms = 0;
+static int Counter3Of10ms = 0;
 
 
-/* CallBack Timer runs every 100ms */  
+/* CallBack Timer runs every 10ms */  
 void IRAM_ATTR Timer_Interrpt_Handler()
 {
-  Counter1Of100ms++;
-  Counter2Of100ms++;
+  Counter1Of10ms++;
+  Counter2Of10ms++;
+  Counter3Of10ms++;
 }
 
 
@@ -35,15 +37,15 @@ void setup()
   /* Setting TIMER0 - Used to define base time (tick) of 100ms */
   timer = timerBegin(0, 80, true);
   timerAttachInterrupt(timer, &Timer_Interrpt_Handler, true);
-  timerAlarmWrite(timer, 100000, true);
+  timerAlarmWrite(timer, 10000, true);
   timerAlarmEnable(timer);
   /* Setting UART2 - Used to serial communication whith slaves modules */
-  uart_param_config(UART_ID, &uart_config);  //Setting communication parameters
-  uart_set_pin(UART_ID, TXD_PIN, RXD_PIN, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);  //Setting communication pins
-  uart_driver_install(UART_ID, RX_BUF_SIZE * 2, 0, 0, NULL, 0);  //Driver installation
-  uart_set_line_inverse(UART_ID, UART_INVERSE_TXD);  //Invert level of Tx line
+  uart_param_config(UART_ID, &uart_config);  /* Setting communication parameters */
+  uart_set_pin(UART_ID, TXD_PIN, RXD_PIN, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);  /* Setting communication pins */
+  uart_driver_install(UART_ID, RX_BUF_SIZE, TX_BUF_SIZE, 0, NULL, 0);  /* Driver installation */ //uart_driver_install(UART_ID, RX_BUF_SIZE * 2, 0, 0, NULL, 0);
+  uart_set_line_inverse(UART_ID, UART_INVERSE_TXD);  /* Invert level of Tx line */
   uart_set_mode(UART_ID, UART_MODE_UART);
-  gpio_set_pull_mode(RXD_PIN, GPIO_FLOATING);  //Turn-off pull-up and pull-down of UART RX pin
+  gpio_set_pull_mode(RXD_PIN, GPIO_FLOATING);  /* Turn-off pull-up and pull-down of UART RX pin */
   /* Create Schedule Table */
   mainData.scheduleTable = Comm_appl_Create_Schedule_Table();
 }
@@ -51,21 +53,31 @@ void setup()
 
 void loop()
 {
-  if(Counter1Of100ms >= T500ms){
-    Counter1Of100ms = 0;
-    Task500ms();  //call Task500ms()
+  if(Counter1Of10ms >= T10ms){
+    Counter1Of10ms = 0;
+    Task10ms();  /* call Task10ms() */
   }
-  if(Counter2Of100ms >= T1000ms){
-    Counter2Of100ms = 0;
-    Task1000ms();  //call Task1000ms()
+  if(Counter2Of10ms >= T500ms){
+    Counter2Of10ms = 0;
+    Task500ms();  /* call Task500ms() */
   }
+  if(Counter3Of10ms >= T1000ms){
+    Counter3Of10ms = 0;
+    Task1000ms();  /* call Task1000ms() */
+  }
+}
+
+
+void Task10ms(void)
+{
+  Comm_appl_FSRM(&mainData);
 }
 
 
 void Task500ms(void)
 {
   digitalWrite(LED_ON_BOARD, !digitalRead(LED_ON_BOARD));
-  Comm_appl_SendData_Request(&mainData);
+  Comm_appl_Request_ChangeOf_FSRM_State(&mainData, FSRM_State_Send);
 }
 
 

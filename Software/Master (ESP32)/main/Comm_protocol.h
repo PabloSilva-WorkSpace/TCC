@@ -17,7 +17,7 @@
 
 
 /* Functions Prototypes */
-void Comm_protocol_Send_Frame(struct Frame *);
+void Comm_protocol_Frame_Send_Request(struct Frame *);
 char * structToString(struct Frame *);
 
 
