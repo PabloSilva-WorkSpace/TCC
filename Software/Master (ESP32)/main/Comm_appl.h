@@ -19,7 +19,8 @@
 enum FSRM_States {
   FSRM_State_Idle = 0,
   FSRM_State_Send = 1,
-  FSRM_State_Error = 2,  
+  FSRM_State_Sending = 2,
+  FSRM_State_Error = 3,  
 };
 
 struct Frame{

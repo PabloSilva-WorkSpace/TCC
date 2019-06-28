@@ -46,6 +46,7 @@ void setup()
   uart_set_line_inverse(UART_ID, UART_INVERSE_TXD);  /* Invert level of Tx line */
   uart_set_mode(UART_ID, UART_MODE_UART);
   gpio_set_pull_mode(RXD_PIN, GPIO_FLOATING);  /* Turn-off pull-up and pull-down of UART RX pin */
+  uart_flush(UART_ID); /* Clear input buffer */
   /* Create Schedule Table */
   mainData.scheduleTable = Comm_appl_Create_Schedule_Table();
 }

@@ -18,6 +18,11 @@ byte Comm_appl_FSRM(struct MainData *pMainData)
     case FSRM_State_Send:
     {
       Comm_protocol_Frame_Send_Request(&pMainData->scheduleTable->frame);
+      Comm_appl_Request_ChangeOf_FSRM_State(pMainData, FSRM_State_Sending);
+      break;
+    }
+    case FSRM_State_Sending:
+    {
       Comm_appl_Request_ChangeOf_FSRM_State(pMainData, FSRM_State_Error);
       break;
     }

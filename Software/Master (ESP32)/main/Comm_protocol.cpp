@@ -8,14 +8,15 @@
 #include "Comm_protocol.h"
 
 
-void Comm_protocol_Frame_Send_Request(struct Frame *pFrame)
+int Comm_protocol_Frame_Send_Request(struct Frame *pFrame)
 {
   char *str = NULL;
-  int Size;
+  int iFrame_Length, iFrame_Length_Sent;
   str = structToString(pFrame);
-  Size = pFrame->Lenght + 5;
-  uart_write_bytes(UART_ID, (const char *)str, Size);
+  iFrame_Length = pFrame->Lenght + 5;
+  iFrame_Length_Sent = uart_write_bytes(UART_ID, (const char *)str, iFrame_Length);
   free(str);
+  return iFrame_Length_Sent;
 }
 
 
