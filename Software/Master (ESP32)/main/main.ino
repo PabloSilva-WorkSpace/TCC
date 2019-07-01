@@ -14,6 +14,7 @@ MainData mainData;
 /* Variables used to set pripherals of Modulo ESP32*/
 hw_timer_t *timer = NULL;
 uart_config_t uart_config = {.baud_rate = 19200, .data_bits = UART_DATA_8_BITS, .parity = UART_PARITY_DISABLE, .stop_bits = UART_STOP_BITS_1, .flow_ctrl = UART_HW_FLOWCTRL_DISABLE};
+static intr_handle_t handle_console;
 /* Variables into this scope (this file *.c) */
 static int Counter1Of10ms = 0;
 static int Counter2Of10ms = 0;
@@ -26,6 +27,13 @@ void IRAM_ATTR Timer_Interrpt_Handler()
   Counter1Of10ms++;
   Counter2Of10ms++;
   Counter3Of10ms++;
+}
+
+
+static void IRAM_ATTR UART2_Interrpt_Handler(void *arg)
+{
+  Serial.println("Ponto 1");
+  uart_clear_intr_status(UART_ID, 0x2000);
 }
 
 
@@ -42,11 +50,18 @@ void setup()
   /* Setting UART2 - Used to serial communication whith slaves modules */
   uart_param_config(UART_ID, &uart_config);  /* Setting communication parameters */
   uart_set_pin(UART_ID, TXD_PIN, RXD_PIN, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);  /* Setting communication pins */
-  uart_driver_install(UART_ID, RX_BUF_SIZE, TX_BUF_SIZE, 0, NULL, 0);  /* Driver installation */ //uart_driver_install(UART_ID, RX_BUF_SIZE * 2, 0, 0, NULL, 0);
+  uart_driver_install(UART_ID, RX_BUF_SIZE, TX_BUF_SIZE, 0, NULL, 0);  /* Driver installation */
   uart_set_line_inverse(UART_ID, UART_INVERSE_TXD);  /* Invert level of Tx line */
   uart_set_mode(UART_ID, UART_MODE_UART);
   gpio_set_pull_mode(RXD_PIN, GPIO_FLOATING);  /* Turn-off pull-up and pull-down of UART RX pin */
-  uart_flush(UART_ID); /* Clear input buffer */
+  //uart_flush(UART_ID); /* Clear input buffer */
+
+  uart_isr_free(UART_ID); /* Release the pre registered UART handler/subroutine */
+  //uart_enable_intr_mask(UART_ID, (UART_INT_ENA_REG(2)>>UART_TX_DONE_INT_ENA_S)&UART_TX_DONE_INT_ENA_V);
+  uart_enable_intr_mask(UART_ID, 0x2000);
+  uart_isr_register(UART_ID, UART2_Interrpt_Handler, NULL, ESP_INTR_FLAG_IRAM, &handle_console); /* Register new UART ISR subroutine */
+  uart_enable_tx_intr(UART_ID, 1, 0);
+  
   /* Create Schedule Table */
   mainData.scheduleTable = Comm_appl_Create_Schedule_Table();
 }

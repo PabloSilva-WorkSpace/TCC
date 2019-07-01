@@ -38,3 +38,11 @@ char *structToString(struct Frame *pFrame)
   *(str + i) = (char)(pFrame->Checksum);
   return str;
 }
+
+
+int Comm_protocol_Get_TXFIFO_Lenght()
+{
+  uint32_t *pUART2_STATUS_REG;
+  pUART2_STATUS_REG = (uint32_t*)UART_STATUS_REG(2);
+  return (int)(*pUART2_STATUS_REG>>16)&0xFF;
+}
