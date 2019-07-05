@@ -4,34 +4,36 @@
  * ToDo[PENS] - need to improve the comments
  */
 
+
 /* Headers includes */ 
 #include "Comm_appl.h"
 
 
-byte Comm_appl_FSRM(struct MainData *pMainData)
+byte Comm_appl_FSM(struct MainData *pMainData)
 {
-  switch (pMainData->FSRM_State){
-    case FSRM_State_Idle:
+  switch (pMainData->FSM_State){
+    case FSM_State_Idle:
     {
       break;
     }
-    case FSRM_State_Send:
+    case FSM_State_Send:
     {
       Comm_protocol_Frame_Send_Request(&pMainData->scheduleTable->frame);
-      Comm_appl_Request_ChangeOf_FSRM_State(pMainData, FSRM_State_Sending);      
+      Comm_appl_Request_ChangeOf_FSM_State(pMainData, FSM_State_Sending);      
       break;
     }
-    case FSRM_State_Sending:
+    case FSM_State_Sending: /* O ideal é sair deste estado usando interrupção: Quando todos data bytes no TX FIFO forem transmitidos */
     {
       if(Comm_protocol_Get_TXFIFO_Lenght() == 0){
-        Comm_appl_Request_ChangeOf_FSRM_State(pMainData, FSRM_State_Error);
+        Comm_appl_Request_ChangeOf_FSM_State(pMainData, FSM_State_Error);
+        Comm_appl_Request_ChangeOf_FRM_State(pMainData, FRM_State_Receiving);
       }
       break;
     }
-    case FSRM_State_Error:
+    case FSM_State_Error:
     {
       /* ToDo[PENS] error handler */
-      Comm_appl_Request_ChangeOf_FSRM_State(pMainData, FSRM_State_Idle);
+      Comm_appl_Request_ChangeOf_FSM_State(pMainData, FSM_State_Idle);
       break;
     } 
     default:
@@ -43,9 +45,66 @@ byte Comm_appl_FSRM(struct MainData *pMainData)
 }
 
 
-void Comm_appl_Request_ChangeOf_FSRM_State(struct MainData *pMainData, enum FSRM_States nextState)
+byte Comm_appl_FRM(struct MainData *pMainData)
 {
-  pMainData->FSRM_State = nextState;
+  uint8_t Data_Buffer[128];
+  static int RxBuff_Timeout = 0;
+  static int RxBuff_Length = 0;
+  static int RxBuff_Length_Previous = 0;
+  switch (pMainData->FRM_State){
+    case FRM_State_Idle:
+    {
+      break;
+    }
+    case FRM_State_Receiving: /* O ideal é ativar este estado usando interrupção: Quando chegar um data byte e a FRM estiver em FRM_State_Idle */
+    {
+      uart_get_buffered_data_len(UART_NUM_2, (size_t*)&RxBuff_Length);
+      if(RxBuff_Length != RxBuff_Length_Previous){
+        RxBuff_Length_Previous = RxBuff_Length;
+        RxBuff_Timeout = 0;
+      } else{
+        RxBuff_Timeout++;
+      }
+      if(RxBuff_Timeout >= 10){
+        RxBuff_Timeout = 0;
+        RxBuff_Length_Previous = 0;
+        Comm_appl_Request_ChangeOf_FRM_State(pMainData, FRM_State_Received);
+      }
+      break;
+    }
+    case FRM_State_Received:
+    {
+      int N_Data_Read;
+      N_Data_Read = uart_read_bytes(UART_NUM_2, Data_Buffer, RxBuff_Length, 0);
+      Serial.printf("\nN# data bytes buffered: %d - N# data bytes read: %d\n", RxBuff_Length, N_Data_Read);
+      for(int i=0; i<N_Data_Read; i++)
+        Serial.printf("%X ", (byte)Data_Buffer[i]);
+      Comm_appl_Request_ChangeOf_FRM_State(pMainData, FRM_State_Idle);
+      break;
+    }
+    case FRM_State_Error:
+    {
+      /* ToDo[PENS] error handler */
+      break;
+    } 
+    default:
+    {
+      /* ToDo[PENS] - error handler to FSRM */
+    }
+  }    
+  return 0;
+}
+
+
+void Comm_appl_Request_ChangeOf_FSM_State(struct MainData *pMainData, enum FSM_States nextState)
+{
+  pMainData->FSM_State = nextState;
+}
+
+
+void Comm_appl_Request_ChangeOf_FRM_State(struct MainData *pMainData, enum FRM_States nextState)
+{
+  pMainData->FRM_State = nextState;
 }
 
 

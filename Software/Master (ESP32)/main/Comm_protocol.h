@@ -19,7 +19,9 @@
 /* Functions Prototypes */
 int Comm_protocol_Frame_Send_Request(struct Frame *);
 char * structToString(struct Frame *);
+
 int Comm_protocol_Get_TXFIFO_Lenght(void);
+int Comm_protocol_Get_RXFIFO_Lenght(void);
 
 
 #endif

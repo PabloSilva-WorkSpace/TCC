@@ -16,11 +16,18 @@
 #define MAX_DATA_SIZE 20
 
 /* Variables  */
-enum FSRM_States {
-  FSRM_State_Idle = 0,
-  FSRM_State_Send = 1,
-  FSRM_State_Sending = 2,
-  FSRM_State_Error = 3,  
+enum FSM_States {
+  FSM_State_Idle = 0,
+  FSM_State_Send = 1,
+  FSM_State_Sending = 2,
+  FSM_State_Error = 3,  
+};
+
+enum FRM_States {
+  FRM_State_Idle = 0,
+  FRM_State_Receiving = 1,
+  FRM_State_Received = 2,
+  FRM_State_Error = 3,  
 };
 
 struct Frame{
@@ -42,12 +49,16 @@ struct Slot{
 
 struct MainData{
   struct Slot *scheduleTable;
-  enum FSRM_States FSRM_State =  FSRM_State_Idle;
+  enum FSM_States FSM_State =  FSM_State_Idle;
+  enum FRM_States FRM_State =  FRM_State_Idle;
 };
 
 /* Functions */
-byte Comm_appl_FSRM(struct MainData *);  /* FSRM = Frame Sending and Receiving Machine ou Máquina de envio e recepção de frames */
-void Comm_appl_Request_ChangeOf_FSRM_State(struct MainData *, enum FSRM_States);
+byte Comm_appl_FSM(struct MainData *);  /* FSM = Frame Send Machine ou Máquina de envio de frames */
+void Comm_appl_Request_ChangeOf_FSM_State(struct MainData *, enum FSM_States);
+
+byte Comm_appl_FRM(struct MainData *);  /* FRM = Frame Receive Machine ou Máquina de recepção de frames */
+void Comm_appl_Request_ChangeOf_FRM_State(struct MainData *, enum FRM_States);
 
 void Comm_appl_Set_Frame_Header(struct Frame *, byte, byte, byte, byte, byte, byte, byte);
 void Comm_appl_Set_Frame_Data(struct Frame *, byte *, int);

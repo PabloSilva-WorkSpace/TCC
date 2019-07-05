@@ -15,6 +15,7 @@ int Comm_protocol_Frame_Send_Request(struct Frame *pFrame)
   str = structToString(pFrame);
   iFrame_Length = pFrame->Lenght + 5;
   iFrame_Length_Sent = uart_write_bytes(UART_ID, (const char *)str, iFrame_Length);
+  //iFrame_Length_Sent = uart_tx_chars(UART_ID, (const char *)str, iFrame_Length);
   free(str);
   return iFrame_Length_Sent;
 }
@@ -45,4 +46,12 @@ int Comm_protocol_Get_TXFIFO_Lenght()
   uint32_t *pUART2_STATUS_REG;
   pUART2_STATUS_REG = (uint32_t*)UART_STATUS_REG(2);
   return (int)(*pUART2_STATUS_REG>>16)&0xFF;
+}
+
+
+int Comm_protocol_Get_RXFIFO_Lenght()
+{
+  uint32_t *pUART2_STATUS_REG;
+  pUART2_STATUS_REG = (uint32_t*)UART_STATUS_REG(2);
+  return (int)(*pUART2_STATUS_REG>>0)&0xFF;
 }
