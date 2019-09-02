@@ -38,9 +38,8 @@
 #define RXD_PIN (GPIO_NUM_16)
 
 /* Functions */
-void Task10ms(void);
-void Task500ms(void);
-void Task1000ms(void);
+void TaskFSRM(void*);    /* Each 10ms */
+void TaskUART_TX(void*); /* Each 500ms */
 
 /* Constants */
 static const int RX_BUF_SIZE = 256; //1024

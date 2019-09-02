@@ -9,7 +9,7 @@
 #include "Comm_appl.h"
 
 
-byte Comm_appl_FSM(struct MainData *pMainData)
+byte Comm_appl_FSM(struct MainData *pMainData)   /* Frame Send Machine*/
 {
   switch (pMainData->FSM_State){
     case FSM_State_Idle:
@@ -45,7 +45,7 @@ byte Comm_appl_FSM(struct MainData *pMainData)
 }
 
 
-byte Comm_appl_FRM(struct MainData *pMainData)
+byte Comm_appl_FRM(struct MainData *pMainData) /* Frame Receive Machine */
 {
   uint8_t Data_Buffer[128];
   static int RxBuff_Timeout = 0;
