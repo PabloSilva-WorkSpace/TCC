@@ -54,6 +54,11 @@ byte Comm_appl_FRM(struct MainData *pMainData) /* Frame Receive Machine */
   switch (pMainData->FRM_State){
     case FRM_State_Idle:
     {
+      //pablo.teste001.inicio
+      //if(Comm_protocol_Get_RXFIFO_Lenght() > 0){
+        //Comm_appl_Request_ChangeOf_FRM_State(pMainData, FRM_State_Receiving);
+      //}
+      //pablo.teste001.fim
       break;
     }
     case FRM_State_Receiving: /* O ideal é ativar este estado usando interrupção: Quando chegar um data byte e a FRM estiver em FRM_State_Idle */
@@ -65,7 +70,7 @@ byte Comm_appl_FRM(struct MainData *pMainData) /* Frame Receive Machine */
       } else{
         RxBuff_Timeout++;
       }
-      if(RxBuff_Timeout >= 10){
+      if(RxBuff_Timeout >= 3){
         RxBuff_Timeout = 0;
         RxBuff_Length_Previous = 0;
         Comm_appl_Request_ChangeOf_FRM_State(pMainData, FRM_State_Received);

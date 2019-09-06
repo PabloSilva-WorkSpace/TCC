@@ -12,13 +12,13 @@
 void configHardware()
 {
   pinMode(LED_ON_BOARD, OUTPUT);
-  /* Setting UART2 - Used to serial communication whith slaves modules */
   
+  /* Setting UART2 - Used to serial communication whith slaves modules */ 
   Serial.begin(USART_BAUDRATE);
   //MCUCR |= (1u<<PUD);
-  //UCSR0B |= (1<<TXEN0)|(1<<RXEN0);
-  //DDRD &= 0xFE;
-  //PORTD &= ~(1<<PORTD0);
+  //MCUCR &= ~(1u<<PUD);
+  PORTD &= 0xFE;      /* Disable pull up in PORTD0 (RxD pin) */
+  
   /* Setting TIMER1 - Used to define base time (tick) of 10ms */
   TCCR1A = 0;                        /* Confira TIMER1 (16-Bits) para operação normal pinos OC1A e OC1B desconectados */
   TCCR1B = 0;                        /* Limpa registrador */

@@ -87,7 +87,7 @@ byte Comm_appl_FRM(struct MainData *pMainData)
         Comm_appl_Request_ChangeOf_FSM_State(pMainData, FSM_State_Send);
       }
       else{
-        Serial.println("Erro de recepcao");
+        //Serial.println("RxD Error");
       }
       //Teste01.fim
       Comm_appl_Request_ChangeOf_FRM_State(pMainData, FRM_State_Error);
@@ -112,8 +112,14 @@ int validacao(byte *Buffer, int lenght)
 {
   int i;
   byte Ref[64];
-  Ref[0] = 0x61;
-  Ref[1] = 0x62;
+  Ref[0] = 0x00;
+  Ref[1] = 0x55;
+  Ref[2] = 0x01;
+  Ref[3] = 0xFF;
+  Ref[4] = 0x03;
+  Ref[5] = 0x01;
+  Ref[6] = 0x01;
+  Ref[7] = 0x01;
   for(i=0; i<lenght; i++){
     if(Buffer[i] != Ref[i])
       return 0;

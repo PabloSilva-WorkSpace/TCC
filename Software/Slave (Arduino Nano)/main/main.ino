@@ -71,7 +71,7 @@ void Task500ms(void)
 
 void Task1000ms(void)
 {
-  Serial.print("A");
+  
 }
 
 
