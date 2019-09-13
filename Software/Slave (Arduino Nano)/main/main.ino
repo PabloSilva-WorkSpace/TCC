@@ -59,6 +59,7 @@ void Task10ms(void)
 {
   Comm_appl_FSM(&mainData);
   Comm_appl_FRM(&mainData);
+  Comm_appl_RHM(&mainData);
 }
 
 

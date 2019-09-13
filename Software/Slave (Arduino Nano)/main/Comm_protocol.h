@@ -15,9 +15,10 @@
 
 /* Defines */
 
-// telefone 3004
+
 /* Functions Prototypes */
 int Comm_protocol_Frame_Send_Request(byte *, int);
+int Comm_protocol_Frame_Get_Request(byte *, int);
 
 int Comm_protocol_Get_TXFIFO_Lenght(void);
 int Comm_protocol_Get_RXFIFO_Lenght(void);
