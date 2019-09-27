@@ -34,7 +34,9 @@ ISR(TIMER1_OVF_vect)
 
 void setup()
 {
-  configHardware();
+  Config_configGPIO();
+  Config_configUART();
+  Config_configTIMER();
 }
 
 
@@ -66,7 +68,6 @@ void Task10ms(void)
 void Task500ms(void)
 {
   digitalWrite(LED_ON_BOARD, !digitalRead(LED_ON_BOARD));
-  //Comm_appl_Request_ChangeOf_FSM_State(&mainData, FSM_State_Send);
 }
 
 

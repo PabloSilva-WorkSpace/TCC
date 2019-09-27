@@ -69,7 +69,7 @@ struct Frame{
   byte Id_Source = 0x00;            /* ID do módulo transmissor */
   byte Id_Target = 0x01;            /* ID do módulo alvo */
   byte Lenght = 0x01;               /* Comprimento da mensagem */
-  byte Data[_FRAME_MAX_DATA_SIZE];   /* Dados */
+  byte Data[_FRAME_MAX_DATA_SIZE];  /* Dados */
   byte Checksum = 0x00;             /* Checksum */
 };
 
@@ -86,10 +86,11 @@ struct MainData{
 
 typedef enum {
   /* Non error codes */
-  KOSTIA_OK = 0,
-  KOSTIA_EXECUTING = 1,
-  KOSTIA_CMD_RX = 2,
-  KOSTIA_DATA_RECEIVED = 3,
+  KOSTIA_NOK = 0,
+  KOSTIA_OK = 1,
+  KOSTIA_EXECUTING = 2,
+  KOSTIA_CMD_RX = 3,
+  KOSTIA_DATA_RECEIVED = 4,
   /* Error codes */
   KOSTIA_ER_NO_LGN_MATCHES = -1,
   KOSTIA_ER_WRONG_BUF_SIZE = -2,
@@ -104,9 +105,9 @@ typedef enum {
 
 
 typedef struct{
-  byte au08Command[_CMD_CODE_FILTER_SIZE];       /* Command code */
-  byte u08Mask;                           /* Command code mask, to say what part of the Kostia data stream represents the command code */
-  Kostia_TRsp (*pfExecute)(byte *pCmd);   /* Callback to command execute function */
+  byte au08Command[_CMD_CODE_FILTER_SIZE];                       /* Command code */
+  byte u08Mask;                                                  /* Command code mask, to say what part of the Kostia data stream represents the command code */
+  Kostia_TRsp (*pfExecute)(byte *pCmd, struct MainData *);       /* Callback to command execute function */
 }Kostia_TCmdTable;
 
 
@@ -126,11 +127,11 @@ int  Comm_appl_FrameToBuffer(struct MainData *);
 int  Comm_appl_Echo_Frame(struct MainData *);
 int  Comm_appl_Validate_Frame(struct MainData *);
 /* CMD  Table Functions */
-static Kostia_TRsp Comm_appl_QueryID (byte *pCmd);
-static Kostia_TRsp Comm_appl_SetID (byte *pCmd);
-static Kostia_TRsp Comm_appl_RequestData (byte *pCmd);
-static Kostia_TRsp Comm_appl_CmdTableError(byte *pAddr);
-static Kostia_TRsp Comm_appl_FindCommand(byte *pAddr);
+static Kostia_TRsp Comm_appl_QueryID (byte *pCmd, struct MainData *);
+static Kostia_TRsp Comm_appl_SetID (byte *pCmd, struct MainData *);
+static Kostia_TRsp Comm_appl_RequestData (byte *pCmd, struct MainData *);
+static Kostia_TRsp Comm_appl_CmdTableError(byte *pAddr, struct MainData *);
+static Kostia_TRsp Comm_appl_FindCommand(byte *pAddr, struct MainData *);
 
 
 #endif

@@ -1,39 +1,40 @@
-/* Fish Tank automation project - TCC -  Comm_appl file
- * Developer: Pablo
+/*********************************************************************************************************** 
+ * Fish Tank automation project - TCC -  main file
+ * Developer: 
  * 
  * ToDo[PENS] - need to improve the comments
- */
+***********************************************************************************************************/
 
 
 /* Headers includes */ 
 #include "Comm_appl.h"
 
 
-byte Comm_appl_FSM(struct MainData *pMainData)   /* Frame Send Machine*/
+byte Comm_appl_FSM( Uart_t *pUart )   /* Frame Send Machine*/
 {
-  switch (pMainData->FSM_State){
+  switch (pUart->FSM_State){
     case FSM_State_Idle:
     {
       break;
     }
     case FSM_State_Send:
     {
-      Comm_protocol_Frame_Send_Request(&pMainData->scheduleTable->frame);
-      Comm_appl_Request_ChangeOf_FSM_State(pMainData, FSM_State_Sending);      
+      Comm_protocol_Frame_Send_Request(&pUart->scheduleTable->frame);
+      Comm_appl_Request_ChangeOf_FSM_State(pUart, FSM_State_Sending);      
       break;
     }
     case FSM_State_Sending: /* O ideal é sair deste estado usando interrupção: Quando todos data bytes no TX FIFO forem transmitidos */
     {
       if(Comm_protocol_Get_TXFIFO_Lenght() == 0){
-        Comm_appl_Request_ChangeOf_FSM_State(pMainData, FSM_State_Error);
-        Comm_appl_Request_ChangeOf_FRM_State(pMainData, FRM_State_Receiving);
+        Comm_appl_Request_ChangeOf_FSM_State(pUart, FSM_State_Error);
+        Comm_appl_Request_ChangeOf_FRM_State(pUart, FRM_State_Receiving);
       }
       break;
     }
     case FSM_State_Error:
     {
       /* ToDo[PENS] error handler */
-      Comm_appl_Request_ChangeOf_FSM_State(pMainData, FSM_State_Idle);
+      Comm_appl_Request_ChangeOf_FSM_State(pUart, FSM_State_Idle);
       break;
     } 
     default:
@@ -45,18 +46,18 @@ byte Comm_appl_FSM(struct MainData *pMainData)   /* Frame Send Machine*/
 }
 
 
-byte Comm_appl_FRM(struct MainData *pMainData) /* Frame Receive Machine */
+byte Comm_appl_FRM( Uart_t *pUart ) /* Frame Receive Machine */
 {
   uint8_t Data_Buffer[128];
   static int RxBuff_Timeout = 0;
   static int RxBuff_Length = 0;
   static int RxBuff_Length_Previous = 0;
-  switch (pMainData->FRM_State){
+  switch (pUart->FRM_State){
     case FRM_State_Idle:
     {
       //pablo.teste001.inicio
       //if(Comm_protocol_Get_RXFIFO_Lenght() > 0){
-        //Comm_appl_Request_ChangeOf_FRM_State(pMainData, FRM_State_Receiving);
+        //Comm_appl_Request_ChangeOf_FRM_State(pUart, FRM_State_Receiving);
       //}
       //pablo.teste001.fim
       break;
@@ -73,7 +74,7 @@ byte Comm_appl_FRM(struct MainData *pMainData) /* Frame Receive Machine */
       if(RxBuff_Timeout >= 3){
         RxBuff_Timeout = 0;
         RxBuff_Length_Previous = 0;
-        Comm_appl_Request_ChangeOf_FRM_State(pMainData, FRM_State_Received);
+        Comm_appl_Request_ChangeOf_FRM_State(pUart, FRM_State_Received);
       }
       break;
     }
@@ -84,7 +85,7 @@ byte Comm_appl_FRM(struct MainData *pMainData) /* Frame Receive Machine */
       Serial.printf("\nN# data bytes buffered: %d - N# data bytes read: %d\n", RxBuff_Length, N_Data_Read);
       for(int i=0; i<N_Data_Read; i++)
         Serial.printf("%X ", (byte)Data_Buffer[i]);
-      Comm_appl_Request_ChangeOf_FRM_State(pMainData, FRM_State_Idle);
+      Comm_appl_Request_ChangeOf_FRM_State(pUart, FRM_State_Idle);
       break;
     }
     case FRM_State_Error:
@@ -101,19 +102,19 @@ byte Comm_appl_FRM(struct MainData *pMainData) /* Frame Receive Machine */
 }
 
 
-void Comm_appl_Request_ChangeOf_FSM_State(struct MainData *pMainData, enum FSM_States nextState)
+void Comm_appl_Request_ChangeOf_FSM_State( Uart_t *pUart, FSM_States_t nextState)
 {
-  pMainData->FSM_State = nextState;
+  pUart->FSM_State = nextState;
 }
 
 
-void Comm_appl_Request_ChangeOf_FRM_State(struct MainData *pMainData, enum FRM_States nextState)
+void Comm_appl_Request_ChangeOf_FRM_State( Uart_t *pUart, FRM_States_t nextState)
 {
-  pMainData->FRM_State = nextState;
+  pUart->FRM_State = nextState;
 }
 
 
-void Comm_appl_Set_Frame_Header(struct Frame *pFrame, byte Break, byte Synch, byte Id_Source, byte Id_Target, byte Lenght, byte Type, byte SID)
+void Comm_appl_Set_Frame_Header(Frame_t *pFrame, byte Break, byte Synch, byte Id_Source, byte Id_Target, byte Lenght, byte Type, byte SID)
 {
   pFrame->Break = Break;
   pFrame->Synch = Synch;
@@ -125,7 +126,7 @@ void Comm_appl_Set_Frame_Header(struct Frame *pFrame, byte Break, byte Synch, by
 }
 
 
-void Comm_appl_Set_Frame_Data(struct Frame *pFrame, byte *Data, int Size)
+void Comm_appl_Set_Frame_Data(Frame_t *pFrame, byte *Data, int Size)
 {
   for(int i=0; i<Size; i++){
     pFrame->Data[i] = *(Data + i);
@@ -133,7 +134,7 @@ void Comm_appl_Set_Frame_Data(struct Frame *pFrame, byte *Data, int Size)
 }
 
 
-void Comm_appl_Set_Frame_Checksum(struct Frame *pFrame)
+void Comm_appl_Set_Frame_Checksum(Frame_t *pFrame)
 {
   pFrame->Checksum = pFrame->Type | pFrame->SID;
 }
@@ -152,17 +153,17 @@ struct Slot *Comm_appl_Create_Schedule_Table(void)
 }
 
 
-void Comm_appl_Insert_Slot(struct Slot *pCurrentSlot)
+void Comm_appl_Insert_Slot(Slot_t *pCurrentSlot)
 {
   struct Slot *pSlot, *pAuxSlot;
   pAuxSlot->nextSlot = pCurrentSlot->nextSlot;
-  pSlot = (struct Slot *) malloc( sizeof(struct Slot *) );  //Alocação dinamica de memória para armazenar uma "struct Slot"
+  pSlot = (struct Slot *) malloc( sizeof(Slot_t *) );  //Alocação dinamica de memória para armazenar uma "struct Slot"
   pSlot->nextSlot = pAuxSlot->nextSlot;
   pCurrentSlot->nextSlot = pSlot;
 }
 
 
-struct Slot *Comm_appl_Select_Next_Slot(struct Slot *pCurrentSlot)
+struct Slot *Comm_appl_Select_Next_Slot(Slot_t *pCurrentSlot)
 {
   return pCurrentSlot->nextSlot;
 }

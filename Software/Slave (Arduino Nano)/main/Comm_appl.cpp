@@ -10,6 +10,7 @@
 
 
 /* Essa constante é uma tabela de todos os comandos disponíveis do ESP para o Slave */
+/* modelo {{SID,TYPE,ID}, byte, callback function} */
 static const Kostia_TCmdTable CmdTable_FromMasterToSlave[] = {
     {{0x01U, 0x01U, 0x01U}, 0x01U, Comm_appl_QueryID},       /* Query if slave is configured */
     {{0x02U, 0x01U, 0x01U}, 0x01U, Comm_appl_SetID},         /* Set ID to slave */
@@ -138,8 +139,7 @@ byte Comm_appl_RHM(struct MainData *pMainData)
         }
         case RHM_State_Process:
         {
-            if(Comm_appl_FindCommand(&pMainData->RxBuffer[_SID]) == KOSTIA_OK){
-                Comm_appl_Request_ChangeOf_FSM_State(pMainData, FSM_State_Send);
+            if(Comm_appl_FindCommand(&pMainData->RxBuffer[_SID], pMainData) == KOSTIA_OK){
                 Comm_appl_Request_ChangeOf_RHM_State(pMainData, RHM_State_Idle);
             }     
             break;
@@ -276,7 +276,7 @@ int Comm_appl_Validate_Frame(struct MainData *pMainData)
     \Return value: KOSTIA_ER_TYPE_NOTFIND
     \Return value: KOSTIA_ER_CMD_NOTFIND
 ******************************************************************************************************/
-static Kostia_TRsp Comm_appl_FindCommand(byte *pAddr)
+static Kostia_TRsp Comm_appl_FindCommand(byte *pAddr, struct MainData *pMainData)
 {
     byte lData[_CMD_CODE_FILTER_SIZE];
     byte u08CounterCmd = 0U;
@@ -288,9 +288,14 @@ static Kostia_TRsp Comm_appl_FindCommand(byte *pAddr)
     lData[2] = *(pAddr+2);
 
     while (CmdTable_FromMasterToSlave[u08CounterCmd].au08Command[0] != 0){
-        if((lData[0] == CmdTable_FromMasterToSlave[u08CounterCmd].au08Command[0]) && (lData[1] == CmdTable_FromMasterToSlave[u08CounterCmd].au08Command[1]) && (lData[2] == CmdTable_FromMasterToSlave[u08CounterCmd].au08Command[2])){
-            eRsp = CmdTable_FromMasterToSlave[u08CounterCmd].pfExecute(pAddr);
-            break;
+        if((lData[0] == CmdTable_FromMasterToSlave[u08CounterCmd].au08Command[0]) && 
+           (lData[1] == CmdTable_FromMasterToSlave[u08CounterCmd].au08Command[1]) && 
+           (lData[2] == CmdTable_FromMasterToSlave[u08CounterCmd].au08Command[2])){
+               eRsp = CmdTable_FromMasterToSlave[u08CounterCmd].pfExecute(pAddr, pMainData); /* Chamada da função que manipula um frame de resposta para o comando recebido */
+               if(eRsp == KOSTIA_OK){
+                   Comm_appl_Request_ChangeOf_FSM_State(pMainData, FSM_State_Send);
+               }
+               break;
         }else{
             /* Command not find */
             eRsp = KOSTIA_ER_CMD_NOTFIND;
@@ -304,16 +309,27 @@ static Kostia_TRsp Comm_appl_FindCommand(byte *pAddr)
 /******************************************************************************************************
     Função
     
-    Description: Function to read teh HW
+    Description: Verifica se o campo mainData.frame.Id_Source =! 0  
     
     \Parameters: u08 *pCmd - command received from Kostia Com
     
     \Return value: Kostia_TRsp
 ******************************************************************************************************/
-static Kostia_TRsp Comm_appl_QueryID(byte *pCmd)
+static Kostia_TRsp Comm_appl_QueryID(byte *pCmd, struct MainData *pMainData)
 {
-    Serial.print("Query");
-    return KOSTIA_OK;
+    if(pMainData->frame.Id_Source == 0x00){      
+        pMainData->frame.Break = 0x00;                /* Break signal */
+        pMainData->frame.Synch = 0x55;                /* Synch signal */
+        pMainData->frame.SID = 0x01;                  /* Identificador de serviço da mensagem */
+        pMainData->frame.Type = 0x02;                 /* Tipo de módulo transmissor */
+        pMainData->frame.Id_Source = 0x00;            /* ID do módulo transmissor */
+        pMainData->frame.Id_Target = 0x01;            /* ID do módulo alvo */
+        pMainData->frame.Lenght = 0x01;               /* Comprimento da mensagem */
+        pMainData->frame.Checksum = 0x00;             /* Checksum */
+        return KOSTIA_OK;
+    }else{
+        return KOSTIA_NOK;
+    }
 }
 
 
@@ -326,9 +342,21 @@ static Kostia_TRsp Comm_appl_QueryID(byte *pCmd)
     
     \Return value: Kostia_TRsp
 ******************************************************************************************************/
-static Kostia_TRsp Comm_appl_SetID(byte *pCmd)
+static Kostia_TRsp Comm_appl_SetID(byte *pCmd, struct MainData *pMainData)
 {
-    return KOSTIA_OK;
+    if(pMainData->frame.Id_Source == 0x00){
+        pMainData->frame.Break = 0x00;                                        /* Break signal */
+        pMainData->frame.Synch = 0x55;                                        /* Synch signal */
+        pMainData->frame.SID = *pCmd;                                         /* Identificador de serviço da mensagem */
+        pMainData->frame.Type = 0x02;                                         /* Tipo de módulo transmissor */
+        pMainData->frame.Id_Source = pMainData->RxBuffer[_ID_TRG];            /* ID do módulo transmissor */
+        pMainData->frame.Id_Target = 0x01;                                    /* ID do módulo alvo */
+        pMainData->frame.Lenght = 0x01;                                       /* Comprimento da mensagem */
+        pMainData->frame.Checksum = 0x00;                                     /* Checksum */
+        return KOSTIA_OK;
+    }else{
+        return KOSTIA_NOK;
+    }
 }
 
 
@@ -341,9 +369,10 @@ static Kostia_TRsp Comm_appl_SetID(byte *pCmd)
     
     \Return value: Kostia_TRsp
 ******************************************************************************************************/
-static Kostia_TRsp Comm_appl_RequestData(byte *pCmd)
+static Kostia_TRsp Comm_appl_RequestData(byte *pCmd, struct MainData *pMainData)
 {
-    return KOSTIA_OK;
+    /* Ler entrada os pinos de entrada para pegar os valores do sensor e controlar a saída. Depende do módulo. */
+    return KOSTIA_NOK;
 }
 
 
@@ -356,7 +385,8 @@ static Kostia_TRsp Comm_appl_RequestData(byte *pCmd)
     
     \Return value: Kostia_TRsp
 ******************************************************************************************************/
-static Kostia_TRsp Comm_appl_CmdTableError(byte *pCmd)
+static Kostia_TRsp Comm_appl_CmdTableError(byte *pCmd, struct MainData *pMainData)
 {
-    return KOSTIA_OK;
+    /* Trata a chegada de uma mensagem não registrada */
+    return KOSTIA_NOK;
 }

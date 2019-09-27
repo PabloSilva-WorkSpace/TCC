@@ -1,71 +1,53 @@
-/*
-   Comm_appl.h
-   /* ToDo[idalgo]-  need to insert comments
-*/
+/*********************************************************************************************************** 
+  * Comm_appl.h
+  * 
+  * ToDo[idalgo]-  need to insert comments
+***********************************************************************************************************/
 
 #ifndef _COMM_APPL_H
 #define _COMM_APPL_H
 
-/* Headers includes */ 
-#include "Comm_protocol.h"
+/* Headers includes */
+#include "Comm_protocol.h"  /* Declara as funções de acesso a interface UART */
 
 /* Libraries includes */  
-#include "Arduino.h"
 
 /* Defines */
-#define MAX_DATA_SIZE 20
 
-/* Variables  */
-enum FSM_States {
+/* Data Types  */
+typedef enum {
   FSM_State_Idle = 0,
   FSM_State_Send = 1,
   FSM_State_Sending = 2,
   FSM_State_Error = 3,  
-};
+}FSM_States_t;
 
-enum FRM_States {
+typedef enum {
   FRM_State_Idle = 0,
   FRM_State_Receiving = 1,
   FRM_State_Received = 2,
   FRM_State_Error = 3,  
-};
+}FRM_States_t;
 
-struct Frame{
-  byte Break = 0x00;          /* Break signal */
-  byte Synch = 0x55;          /* Synch signal */
-  byte Id_Source = 0x01;      /* ID do módulo transmissor */
-  byte Id_Target = 0x00;      /* ID do módulo alvo */
-  byte Lenght = 0x01;         /* Comprimento da mensagem */
-  byte Type = 0x01;           /* Tipo de módulo do transmissor */
-  byte SID = 0x00;            /* Identificador de serviço da mensagem */
-  byte Data[MAX_DATA_SIZE];   /* Dados */
-  byte Checksum = 0x00;       /* Checksum */
-};
-
-struct Slot{
-  struct Frame frame;
-  struct Slot *nextSlot;
-};
-
-struct MainData{
-  struct Slot *scheduleTable;
-  enum FSM_States FSM_State =  FSM_State_Idle;
-  enum FRM_States FRM_State =  FRM_State_Idle;
-};
+typedef struct{
+  Slot_t *scheduleTable;
+  FSM_States_t FSM_State =  FSM_State_Idle;
+  FRM_States_t FRM_State =  FRM_State_Idle;
+}Uart_t;
 
 /* Functions */
-byte Comm_appl_FSM(struct MainData *);  /* FSM = Frame Send Machine ou Máquina de envio de frames */
-void Comm_appl_Request_ChangeOf_FSM_State(struct MainData *, enum FSM_States);
+byte Comm_appl_FSM( Uart_t * );  /* FSM = Frame Send Machine ou Máquina de envio de frames */
+void Comm_appl_Request_ChangeOf_FSM_State( Uart_t *, FSM_States_t );
 
-byte Comm_appl_FRM(struct MainData *);  /* FRM = Frame Receive Machine ou Máquina de recepção de frames */
-void Comm_appl_Request_ChangeOf_FRM_State(struct MainData *, enum FRM_States);
+byte Comm_appl_FRM( Uart_t * );  /* FRM = Frame Receive Machine ou Máquina de recepção de frames */
+void Comm_appl_Request_ChangeOf_FRM_State( Uart_t *, FRM_States_t);
 
-void Comm_appl_Set_Frame_Header(struct Frame *, byte, byte, byte, byte, byte, byte, byte);
-void Comm_appl_Set_Frame_Data(struct Frame *, byte *, int);
-void Comm_appl_Set_Frame_Checksum(struct Frame *);
+void Comm_appl_Set_Frame_Header(Frame_t *, byte, byte, byte, byte, byte, byte, byte);
+void Comm_appl_Set_Frame_Data(Frame_t *, byte *, int);
+void Comm_appl_Set_Frame_Checksum(Frame_t *);
 
 struct Slot *Comm_appl_Create_Schedule_Table(void);
-void Comm_appl_Insert_Slot(struct Slot *);
-struct Slot *Comm_appl_Select_Next_Slot(struct Slot *);
+void Comm_appl_Insert_Slot(Slot_t *);
+struct Slot *Comm_appl_Select_Next_Slot(Slot_t *);
 
 #endif

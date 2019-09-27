@@ -1,14 +1,14 @@
-/* Fish Tank automation project - TCC -  Comm_protocol file
- * Developer: Pablo
+/*********************************************************************************************************** 
+ * Fish Tank automation project - TCC -  main file
+ * Developer: 
  * 
  * ToDo[PENS] - need to improve the comments
- */
+***********************************************************************************************************/
 
  /* Headers includes */ 
 #include "Comm_protocol.h"
 
-
-int Comm_protocol_Frame_Send_Request(struct Frame *pFrame)
+int Comm_protocol_Frame_Send_Request(Frame_t *pFrame)
 {
   char *str = NULL;
   int iFrame_Length, iFrame_Length_Sent;
@@ -21,7 +21,7 @@ int Comm_protocol_Frame_Send_Request(struct Frame *pFrame)
 }
 
 
-char *structToString(struct Frame *pFrame)
+char *structToString(Frame_t *pFrame)
 {
   int i, Size;
   Size = pFrame->Lenght + 5;
