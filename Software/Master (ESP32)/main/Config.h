@@ -9,6 +9,7 @@
 
 
 /* Headers includes */ 
+#include "NVS.h"
 
 /* Libraries includes */
 #include "Arduino.h"  
@@ -26,7 +27,6 @@
 #include "esp_types.h"
 #include "esp_attr.h"
 #include "string.h"
-#include "nvs_flash.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/event_groups.h"
 #include "soc/uhci_reg.h"
@@ -56,7 +56,6 @@ void Config_configWIFI( esp_err_t (*fCallback)(void *, system_event_t *) );
 void wifi_init_sta( char * ssid, char * password, esp_err_t (*fCallback)(void *, system_event_t *) );
 void wifi_init_ap( void );
 void start_dhcp_server( void );
-esp_err_t nvs_read_ssid_password( char * ssid, size_t ssid_len, char * password, size_t password_len );
 
 
 #endif

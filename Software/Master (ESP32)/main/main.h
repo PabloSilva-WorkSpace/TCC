@@ -28,7 +28,7 @@ void TaskUART_TX(void*); /* Each 500ms */
 /* Data Types */
 typedef struct{
   Uart_t uart;
-  WF_t wifi;
+  WiFi_t wifi;
 }MainData_t;
 
 

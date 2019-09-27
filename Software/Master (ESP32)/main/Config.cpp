@@ -79,55 +79,6 @@ void Config_configWIFI(esp_err_t (*fCallback)(void *, system_event_t *))
 
 
 /***************************************************************************************************************************************************************** 
- * @brief      Função Responsável em retornar o valor do SSID e PASSWORD salvos na NVS
- *
- * @param      ssid          The ssid
- * @param[in]  ssid_len      The ssid length
- * @param      password      The password
- * @param[in]  password_len  The password length
- *
- * @return     Retorna o status da leitura da nvs;
-******************************************************************************************************************************************************************/
-esp_err_t nvs_read_ssid_password( char * ssid, size_t ssid_len, char * password, size_t password_len )
-{
-    nvs_handle my_handle;
-    esp_err_t err = nvs_open( "storage", NVS_READWRITE, &my_handle );
-    if ( err != ESP_OK ) {
-        if( DEBUG )
-          ESP_LOGI(TAG, "Error (%d) opening NVS handle!\n", err );      
-    }
-    else{
-        /* Leitura do SSID salvo na NVS */
-        err = nvs_get_str(my_handle, "ssid", ssid, &ssid_len);
-        if( err != ESP_OK ) {             
-            if( err == ESP_ERR_NVS_NOT_FOUND ) {
-                if( DEBUG )
-                    ESP_LOGI(TAG, "\nKey ssid not found.\n");
-            }
-        }
-        else{
-            if( DEBUG )
-                ESP_LOGI(TAG, "\nssid is %s\n", ssid );
-        }
-        /* Leitura do PASSWORD salvo em NVS */
-        err = nvs_get_str(my_handle, "password", password, &password_len);
-        if( err != ESP_OK ) {
-            if( err == ESP_ERR_NVS_NOT_FOUND ) {
-                if( DEBUG )
-                    ESP_LOGI(TAG, "\nKey password not found.\n");
-            }
-        }
-        else{
-            if( DEBUG )
-              ESP_LOGI(TAG, "\npassword is %s.\n", ssid );
-        }
-        nvs_close(my_handle);   
-    }
-    return err;
-}
-
-
-/***************************************************************************************************************************************************************** 
   Descrição: Função que configura e inicializa o driver WiFi do ESP no modo Station
 ******************************************************************************************************************************************************************/
 void wifi_init_sta( char * ssid, char * password, esp_err_t (*fCallback)(void *, system_event_t *) )
