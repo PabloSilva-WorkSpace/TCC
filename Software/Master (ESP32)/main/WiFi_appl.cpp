@@ -11,11 +11,25 @@
 
 
 /* Global variables into this scope (this file *.c) */
-extern const uint8_t server_html_page_form_start[] asm("_binary_server_html_page_form_start");
-extern const uint8_t server_html_page_form_end[]   asm("_binary_server_html_page_form_end");
+//extern const uint8_t server_html_page_form_start[] asm("_binary_server_html_page_form_start");  /* Embedding Binary Data */
+//extern const uint8_t server_html_page_form_end[]   asm("_binary_server_html_page_form_end");
 const static char http_html_hdr[] = "HTTP/1.1 200 OK\nContent-type: text/html\n\n";
-static EventGroupHandle_t event_group = xEventGroupCreate();   /* Criação de um eventgroup para sinalização do status da rede WiFi. */
 const int WIFI_CONNECTED_BIT = BIT0;
+const char html_page[] PROGMEM = "<html>\n<head>\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" charset=\"UTF-8\">\n<style>\nbody {font-family: Arial;}\n"
+                                 "form {border: 3px solid #f1f1f1;}\ninput[type=text], input[type=password] {\n  width: 100%;\n  padding: 12px 20px;\n"
+                                 "margin: 8px 0;\n display: inline-block;\n  border: 1px solid #ccc;\n box-sizing: border-box;\n}\nbutton {\n background-color: #4CAF50;\n"
+                                 "color: white;\n padding: 14px 20px;\n margin: 8px 0;\n border: none;\n cursor: pointer;\n width: 100%;\n}\nbutton:hover {\n"
+                                 "opacity: 0.8;\n}\n.container {\n  padding: 16px;\n}\n</style>\n</head>\n<body>\n<script>\n\nfunction send() {\n"
+                                 "document.getElementById(\"msg\").innerHTML = \"\";\n  var ssid = document.getElementById(\"ssid\").value;\n"
+                                 "var password = document.getElementById(\"password\").value;\n\n if( ssid == '' || ssid.length < 3)\n {\n"
+                                 "alert(\"O campo ssid deve ter 3 ou mais caracteres.\");\n return;\n }\n\n if( password == '' || password.length < 8)\n {\n"
+                                 "alert(\"O campo password deve ter 8 ou mais caracteres.\");\n return;\n }\n\n var http = new XMLHttpRequest();\n  var url = '';\n"
+                                 "var params = 'ssid='+ssid+'&password='+password;\n  http.open('POST', url, true);\n http.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');\n"
+                                 "http.onreadystatechange = function() {\n if(http.readyState == 4 && http.status == 200) {\n if(http.responseText === \"1\")\n {\n"
+                                 "document.getElementById(\"msg\").innerHTML = \"<b>As configurações da rede WiFi foram alteradas com sucesso! Desligue e ligue o dispositivo da rede elétrica para que as novas configurações sejam carregadas.</b>\";\n"
+                                 "}\n }\n }\n http.send(params);\n}\n</script>\n\n <div align=\"center\">\n <label id=\"msg\"></label>\n </div>\n <hr>\n <div class=\"container\">\n"
+                                 "<label for=\"ssid\"><b>SSID</b></label>\n <input type=\"text\" placeholder=\"Enter SSID\" name=\"ssid\" required id=\"ssid\">\n <label for=\"password\"><b>Password</b></label>\n"
+                                 "<input type=\"password\" placeholder=\"Enter Password\" name=\"password\" required id=\"password\"> \n <button onclick=\"send()\">Save</button>\n </div>\n\n</body>\n</html>";
 
 
 /*************************************************************************************************************************************************************************************
@@ -30,29 +44,37 @@ const int WIFI_CONNECTED_BIT = BIT0;
 esp_err_t wifi_event_handler( void *ctx, system_event_t *event )
 {
     static int nAttempts = 0;
+    esp_err_t resp;
+    EventGroupHandle_t * event_group;
+    event_group = (EventGroupHandle_t*)ctx;
+    
     switch( event->event_id ) 
     {
         /* Evento disparado quando o stack tcp for inicializado */
         case SYSTEM_EVENT_STA_START:{
-            Serial.println("Ponto 1");
-            esp_wifi_connect(); /* O ESP inicia a tentativa (intenção) de conexão com o AP da rede WiFi configurada */
+            resp = esp_wifi_connect(); /* O ESP inicia a tentativa (intenção) de conexão com o AP da rede WiFi configurada */
+            Serial.println("ESP32 iniciou o modo STA e realizou a primeira tentativa de conexão com o AP");
             break;
         }
         /* Evento disparado quando o ESP recebe um IP do roteador (conexão bem sucedida entre ESP e Roteador) */
         case SYSTEM_EVENT_STA_GOT_IP:{
             if( DEBUG )
                 ESP_LOGI( "Wifi", "got ip:%s", ip4addr_ntoa( &event->event_info.got_ip.ip_info.ip ));
-            xEventGroupSetBits( event_group, WIFI_CONNECTED_BIT ); /* Sinaliza por meio deste event group que a conexão WiFi foi estabelecida */
+            xEventGroupSetBits( *event_group, WIFI_CONNECTED_BIT ); /* Sinaliza por meio deste event group que a conexão WiFi foi estabelecida */
             nAttempts = 0;
+            Serial.println("ESP32 conectou-se a um AP e recebeu um IP");
             break;
         }
         /* Evento disparado quando o ESP perde a conexão com a rede WiFi ou quando a tentativa de conexão não ocorrer */
         case SYSTEM_EVENT_STA_DISCONNECTED:{
-            xEventGroupClearBits( event_group, WIFI_CONNECTED_BIT ); /* Reseta o bit do event group que sinaliza o status da conexão WiFi */
-            if(nAttempts < 3){
+            xEventGroupClearBits( *event_group, WIFI_CONNECTED_BIT ); /* Reseta o bit do event group que sinaliza o status da conexão WiFi */
+            Serial.println((char*)event->event_info.disconnected.ssid); /* Checar a estrutura que contém a causa da falha de conexão */
+            Serial.println(event->event_info.disconnected.ssid_len); /* Checar a estrutura que contém a causa da falha de conexão */
+            Serial.println(event->event_info.disconnected.reason); /* Checar a estrutura que contém a causa da falha de conexão */
+            if(nAttempts < 10){
                 esp_wifi_connect();   /* ESP realiza nova tentativa de conexão com o AP da rede WiFi configurada */
                 nAttempts++;
-                Serial.println("Ponto 2");
+                Serial.println("ESP32 realizou nova tentativa de conexão com o AP");
             } else{
                 Serial.println("Não foi possivel conectar-se a esta rede");
                 wifi_init_ap();   /* Configuração do driver WiFi para o modo AP, a fim de configurar o ESP para tentar conectar em outra rede WiFi */
@@ -62,17 +84,18 @@ esp_err_t wifi_event_handler( void *ctx, system_event_t *event )
         }
         /* Evento disparado quando o stack tcp for inicializado */
         case SYSTEM_EVENT_AP_START:{
-            Serial.println("ESP32 inicializado em modo AP");
+            Serial.println("ESP32 iniciou o modo AP");
             if ( DEBUG )
                 ESP_LOGI( "Wifi", "ESP32 Inicializado em modo Acess Point.\n" );
+            xTaskCreatePinnedToCore( wifi_manager, "wifi_manager", 2048*4, NULL, 1, NULL, 1 );
             break;
         }
         /* Evento disparado quando algum dispositivo no modo Station conectar-se ao AP do ESP32 */
         case SYSTEM_EVENT_AP_STACONNECTED:{
-            Serial.println("Dispositivo Station conectou-se ao AP do ESP32");
+            Serial.println("Dispositivo STA conectou-se ao AP do ESP32");
             if( DEBUG )
                 ESP_LOGI( "Wifi", "Dispositivo conectado ao WiFi AP.\n" );
-            xEventGroupSetBits( event_group, WIFI_CONNECTED_BIT );   /* Se chegou aqui significa que o Wifi do ESP foi inicializado corretamente no modo AP. Então, sinaliza por meio do event group */
+            xEventGroupSetBits( *event_group, WIFI_CONNECTED_BIT );   /* Se chegou aqui significa que o Wifi do ESP foi inicializado corretamente no modo AP. Então, sinaliza por meio do event group */
             break;
         }
         /* Evento disparado quando algum dispositivo no modo Station desconectar-se do AP do ESP32 */
@@ -80,7 +103,7 @@ esp_err_t wifi_event_handler( void *ctx, system_event_t *event )
             Serial.println("Dispositivo Station desconectou-se do AP do ESP32");
             if( DEBUG )
                 ESP_LOGI( "Wifi", "Dispositivo conectado ao WiFi AP.\n" );    
-            xEventGroupClearBits(event_group, WIFI_CONNECTED_BIT);   /* Sinaliza, ou informa, por meio do event group que um cliente foi desconectado do AP do ESP*/
+            xEventGroupClearBits( *event_group, WIFI_CONNECTED_BIT );   /* Sinaliza, ou informa, por meio do event group que um cliente foi desconectado do AP do ESP*/
             break;
         }
         /* Evento não previsto */
@@ -127,7 +150,7 @@ void wifi_manager( void *pvParameters )
                 http_server(newconn);   /* Esta função é responsável em enviar a primeira pagina HTML para o cliente e de receber as requisições socket do client */
                 netconn_delete(newconn);
             }
-            vTaskDelay(1);  /* Bloquear esta task, a fim de dar chance das demais serem processadas/executadas */
+            vTaskDelay(1000/portTICK_PERIOD_MS);;  /* Bloquear esta task, a fim de dar chance das demais serem processadas/executadas */
         } while(err == ERR_OK);
     
         /* Caso ocorra algum erro durante a conexão socket com o cliente: (i) Fechar/encerrar a conexão socket e (ii) Deletar o handle da conexão socket */
@@ -142,7 +165,7 @@ void wifi_manager( void *pvParameters )
 
 
 /*************************************************************************************************************************************************************************************
- * @brief      Função responsável em tratar os request do HTML;
+ * @brief      Função responsável em tratar os request do HTML; Resumidamente é um Web Server.
  *
  * @param      ctx    The context (In this case is null)
  * @param      event  Pointer to struct that contains WiFi status (i.g.: event)
@@ -178,7 +201,8 @@ void http_server( struct netconn *conn )
             if( (strstr(first_line, "GET / ")) || (strstr(first_line, "GET /favicon.ico")) ) {
                 if( DEBUG )
                     ESP_LOGI(TAG, "Enviar página HTML de entrada.\n");                   
-                netconn_write(conn, server_html_page_form_start, server_html_page_form_end - server_html_page_form_start, NETCONN_NOCOPY);
+                netconn_write(conn, html_page, sizeof(html_page), NETCONN_NOCOPY);
+                //netconn_write( conn, server_html_page_form_start, server_html_page_form_end - server_html_page_form_start, NETCONN_NOCOPY );
             }
             /* Algoritmo responsável em receber os dados do formulário <form> com o login e senha de acesso ao dashboard */
             else if(strstr(first_line, "POST / ")) {
@@ -278,7 +302,8 @@ void http_server( struct netconn *conn )
                         if( user_pwd_ok == 0 )
                         {
                             /* Caso não seja possível processar ssid ou password carrega novamente a mesma página HTML do formulário */
-                            netconn_write( conn, server_html_page_form_start, server_html_page_form_end - server_html_page_form_start, NETCONN_NOCOPY );      
+                            netconn_write(conn, html_page, sizeof(html_page), NETCONN_NOCOPY);
+                            //netconn_write( conn, server_html_page_form_start, server_html_page_form_end - server_html_page_form_start, NETCONN_NOCOPY );
                         }
                         /* Desaloca o buffer que foi criado */
                         vPortFree(payload);

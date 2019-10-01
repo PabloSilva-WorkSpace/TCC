@@ -8,50 +8,55 @@
  /* Headers includes */ 
 #include "Comm_protocol.h"
 
-int Comm_protocol_Frame_Send_Request(Frame_t *pFrame)
+
+/***********************************************************************************************************************************************************************************************
+    Descrição: Esta função escreve bytes no Tx_Buffer, os quais serão posteriormente armazenados automaticamente no Tx_Fifo e enviados no pino TxD.
+***********************************************************************************************************************************************************************************************/
+int Comm_protocol_Frame_Send_Request(TxBuffer_t *pTxBuffer, int lenght)
 {
-  char *str = NULL;
-  int iFrame_Length, iFrame_Length_Sent;
-  str = structToString(pFrame);
-  iFrame_Length = pFrame->Lenght + 5;
-  iFrame_Length_Sent = uart_write_bytes(UART_ID, (const char *)str, iFrame_Length);
-  //iFrame_Length_Sent = uart_tx_chars(UART_ID, (const char *)str, iFrame_Length);
-  free(str);
-  return iFrame_Length_Sent;
+    return uart_write_bytes(UART_ID, (const char *)pTxBuffer, lenght);
 }
 
 
-char *structToString(Frame_t *pFrame)
+/***********************************************************************************************************************************************************************************************
+    Descrição: Esta função lê os bytes no Rx_Buffer, os quais serão posteriormente armazenados automaticamente no Tx_Fifo e enviados no pino TxD.
+***********************************************************************************************************************************************************************************************/
+int Comm_protocol_Frame_Read_Request(RxBuffer_t *pRxBuffer, int RxBuff_Length)
 {
-  int i, Size;
-  Size = pFrame->Lenght + 5;
-  char *str = (char*) malloc(Size * sizeof(char));  //Aloca #Size bytes de memória
-  *(str + 0) = (char)(pFrame->Break);
-  *(str + 1) = (char)(pFrame->Synch);
-  *(str + 2) = (char)(pFrame->Id_Source);
-  *(str + 3) = (char)(pFrame->Id_Target);
-  *(str + 4) = (char)(pFrame->Lenght);
-  *(str + 5) = (char)(pFrame->Type);
-  *(str + 6) = (char)(pFrame->SID);
-  for(i=7; i<(7 + pFrame->Lenght - 3); i++){
-    *(str + i) = (char)(pFrame->Data[i-7]);
-  }
-  *(str + i) = (char)(pFrame->Checksum);
-  return str;
+    int nDataReceived;
+    nDataReceived = uart_read_bytes(UART_ID, (uint8_t*)pRxBuffer, RxBuff_Length, 0);
+    return nDataReceived;
 }
 
 
-int Comm_protocol_Get_TXFIFO_Lenght()
+/***********************************************************************************************************************************************************************************************
+    Descrição: Esta função lê a quantidade de bytes armazenados no Tx_FIFO (O último estágio antes do pino TxD - output), os quais ainda serão transmitidos no pino TxD.
+***********************************************************************************************************************************************************************************************/
+int Comm_protocol_Get_TxFIFO_Length()
 {
-  uint32_t *pUART2_STATUS_REG;
-  pUART2_STATUS_REG = (uint32_t*)UART_STATUS_REG(2);
-  return (int)(*pUART2_STATUS_REG>>16)&0xFF;
+    uint32_t *pUART2_STATUS_REG;
+    pUART2_STATUS_REG = (uint32_t*)UART_STATUS_REG(2);
+    return (int)(*pUART2_STATUS_REG>>16)&0xFF;
 }
 
 
-int Comm_protocol_Get_RXFIFO_Lenght()
+/***********************************************************************************************************************************************************************************************
+    Descrição: Esta função lê a quantidade de bytes armazenados no Rx_FIFO (O primeiro estágio a partir do pino RxD - input), os quais tem sido recebidos no pino RxD.
+***********************************************************************************************************************************************************************************************/
+int Comm_protocol_Get_RxFIFO_Length()
 {
-  uint32_t *pUART2_STATUS_REG;
-  pUART2_STATUS_REG = (uint32_t*)UART_STATUS_REG(2);
-  return (int)(*pUART2_STATUS_REG>>0)&0xFF;
+    uint32_t *pUART2_STATUS_REG;
+    pUART2_STATUS_REG = (uint32_t*)UART_STATUS_REG(2);
+    return (int)(*pUART2_STATUS_REG>>0)&0xFF;
+}
+
+
+/***********************************************************************************************************************************************************************************************
+    Descrição: Esta função lê a quantidade de bytes armazenados no Rx_BUFFER (O estágio seguinte ao Rx_FIFO), os quais foram recebidos no Rx_FIFO.
+***********************************************************************************************************************************************************************************************/
+int Comm_protocol_Get_RxBUFFER_Length()
+{
+    size_t RxBuff_length;
+    uart_get_buffered_data_len(UART_ID, &(RxBuff_length));   /* Lê a quantidade de bytes armazenados no Rx_Buffer da UART definida por UART_ID e armazena em RxBuff_Length */
+    return RxBuff_length;
 }

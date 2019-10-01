@@ -12,15 +12,20 @@
 
 /* Variables into this scope (this file *.c) */
 MainData_t mainData;  /* Main Data of Module */
-
+const int WIFI_CONNECTED_BIT = BIT0;
 
 void setup()
 {
   /* Configurar hardware */
   Config_configGPIO();
   Config_configUART();
-  mainData.wifi.callback = &wifi_event_handler;
-  Config_configWIFI(mainData.wifi.callback);
+  mainData.wifi.callback = &wifi_event_handler;      /* Definição da função de callback que trata dos eventos da rede WiFi. */
+  mainData.wifi.event_group = xEventGroupCreate();   /* Criação de um eventgroup para sinalização do status da rede WiFi. */
+  //Config_configWIFI(mainData.wifi.callback, &mainData.wifi.event_group);
+  //vTaskDelay(2000/portTICK_PERIOD_MS);
+
+  //xEventGroupWaitBits( mainData.wifi.event_group, WIFI_CONNECTED_BIT, false, true, portMAX_DELAY );
+  
   /* Create Schedule Table */
   mainData.uart.scheduleTable = Comm_appl_Create_Schedule_Table();
   /* Tasks create */
@@ -43,6 +48,7 @@ void TaskFSRM(void* Parameters)
   for(;;){
     Comm_appl_FSM(&mainData.uart);
     Comm_appl_FRM(&mainData.uart);
+    Comm_appl_RHM(&mainData.uart);
     vTaskDelay(10/portTICK_PERIOD_MS);
   }
 }

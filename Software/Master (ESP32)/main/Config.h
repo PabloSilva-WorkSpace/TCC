@@ -26,6 +26,7 @@
 #include "esp_intr_alloc.h"
 #include "esp_types.h"
 #include "esp_attr.h"
+#include "esp_err.h"
 #include "string.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/event_groups.h"
@@ -52,8 +53,8 @@ static const int TX_BUF_SIZE = 256;
 /* Functions Prototypes */
 void Config_configGPIO();
 void Config_configUART();
-void Config_configWIFI( esp_err_t (*fCallback)(void *, system_event_t *) );
-void wifi_init_sta( char * ssid, char * password, esp_err_t (*fCallback)(void *, system_event_t *) );
+void Config_configWIFI( esp_err_t (*fCallback)(void *, system_event_t *), EventGroupHandle_t * );
+void wifi_init_sta( char * ssid, char * password, esp_err_t (*fCallback)(void *, system_event_t *), EventGroupHandle_t *  );
 void wifi_init_ap( void );
 void start_dhcp_server( void );
 

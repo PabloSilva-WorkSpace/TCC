@@ -52,7 +52,7 @@ void Config_configUART()
 /*****************************************************************************************************************************************************************
   @Brief: Setting Wifi
 ******************************************************************************************************************************************************************/
-void Config_configWIFI(esp_err_t (*fCallback)(void *, system_event_t *))
+void Config_configWIFI(esp_err_t (*fCallback)(void *, system_event_t *), EventGroupHandle_t * event_group)
 {
     /* Inicialização da NVS, e chama a calibração do PHY do ESP32. */
     esp_err_t ret = nvs_flash_init();
@@ -74,30 +74,32 @@ void Config_configWIFI(esp_err_t (*fCallback)(void *, system_event_t *))
         strcpy (wifi_password,"12345678");
     }
     /* Chamada da função que tenta inicializar o WiFi no modo STATION, usando o SSID e PASSWORD resgatados da NVS */
-    wifi_init_sta( wifi_ssid, wifi_password, fCallback );
+    wifi_init_sta( wifi_ssid, wifi_password, fCallback, event_group );
 }
 
 
 /***************************************************************************************************************************************************************** 
   Descrição: Função que configura e inicializa o driver WiFi do ESP no modo Station
 ******************************************************************************************************************************************************************/
-void wifi_init_sta( char * ssid, char * password, esp_err_t (*fCallback)(void *, system_event_t *) )
+void wifi_init_sta( char * ssid, char * password, esp_err_t (*fCallback)(void *, system_event_t *), EventGroupHandle_t * event_group )
 {
-    tcpip_adapter_init();
+    tcpip_adapter_init();   
     /* Configurar ou registrar, uma função de callback do driver WiFi (função que irá receber os eventos da conexão WiFi) */
-    ESP_ERROR_CHECK(esp_event_loop_init( fCallback, NULL ) );
+    ESP_ERROR_CHECK(esp_event_loop_init( fCallback, event_group ) );
     /* Inicialização dos recursos para o driver WiFi */
     wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
-    ESP_ERROR_CHECK(esp_wifi_init( &cfg ));
-    ESP_ERROR_CHECK(esp_wifi_set_storage(WIFI_STORAGE_RAM));
+    ESP_ERROR_CHECK( esp_wifi_init( &cfg ) );
+    ESP_ERROR_CHECK( esp_wifi_set_storage(WIFI_STORAGE_RAM) );
     /* Declaração e definição do descritor de configuração do driver WiFi */
     wifi_config_t wifi_config;
     memcpy(wifi_config.sta.ssid, ssid, (strlen(ssid) + 1));
     memcpy(wifi_config.sta.password, password, (strlen(password) + 1));
+    //wifi_config.sta.scan_method = WIFI_FAST_SCAN;
+    //wifi_config.sta.listen_interval = 10;
+    Serial.printf("\n ssid: %s || pass: %s \n",ssid, password);
     /* Configuração e inicialização do driver WiFi no modo STATION */
-    ESP_ERROR_CHECK(esp_wifi_set_mode( WIFI_MODE_STA ));
-    ESP_ERROR_CHECK(esp_wifi_set_config( ESP_IF_WIFI_STA, &wifi_config ) );
-    vTaskDelay(1000/portTICK_PERIOD_MS);
+    ESP_ERROR_CHECK( esp_wifi_set_mode( WIFI_MODE_STA ) );
+    ESP_ERROR_CHECK( esp_wifi_set_config( ESP_IF_WIFI_STA, &wifi_config ) );
     ESP_ERROR_CHECK( esp_wifi_start() );
     if( DEBUG ) {
         ESP_LOGI( TAG, "wifi_init_sta finished." );
@@ -129,8 +131,6 @@ void wifi_init_ap( void )
     wifi_config.ap.ssid_len = strlen(wifi_AP_SSID);
     wifi_config.ap.max_connection = 5;    /* Configuração do número máximo de dispositivos conectado ao ESP */
     wifi_config.ap.authmode = WIFI_AUTH_WPA_WPA2_PSK;
-    //for(i=strlen(wifi_AP_SSID)+1; i<sizeof(wifi_config.ap.ssid); i++)
-    //    wifi_config.ap.ssid[i] = 0x20;
     /* Configuração e inicialização do driver WiFi no modo AP (ACCESS POINT) */
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_AP));
     ESP_ERROR_CHECK(esp_wifi_set_config(ESP_IF_WIFI_AP, &wifi_config));

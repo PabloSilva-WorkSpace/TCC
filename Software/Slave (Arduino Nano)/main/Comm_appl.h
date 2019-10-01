@@ -116,16 +116,21 @@ typedef struct{
 *********************************************************************************************************************************************/
 byte Comm_appl_FSM(struct MainData *);  /* FSM = Frame Send Machine (Máquina de Envio de Frames) */
 void Comm_appl_Request_ChangeOf_FSM_State(struct MainData *, enum FSM_States);
+
 byte Comm_appl_FRM(struct MainData *);  /* FRM = Frame Receive Machine (Máquina de Recepção de Frames) */
 void Comm_appl_Request_ChangeOf_FRM_State(struct MainData *, enum FRM_States);
+
 byte Comm_appl_RHM(struct MainData *);  /* RHM = Response Handling Machine (Máquina de Tratamento de Resposta) */
 void Comm_appl_Request_ChangeOf_RHM_State(struct MainData *, enum RHM_States);
+
 void Comm_appl_Set_Frame_Header(struct Frame *, byte, byte, byte, byte, byte, byte, byte);
 void Comm_appl_Set_Frame_Data(struct Frame *, byte *, int);
 void Comm_appl_Set_Frame_Checksum(struct Frame *);
+
 int  Comm_appl_FrameToBuffer(struct MainData *);
 int  Comm_appl_Echo_Frame(struct MainData *);
 int  Comm_appl_Validate_Frame(struct MainData *);
+
 /* CMD  Table Functions */
 static Kostia_TRsp Comm_appl_QueryID (byte *pCmd, struct MainData *);
 static Kostia_TRsp Comm_appl_SetID (byte *pCmd, struct MainData *);
