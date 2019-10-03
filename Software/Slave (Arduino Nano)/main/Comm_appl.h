@@ -59,28 +59,28 @@ typedef struct{
 }Uart_t;
 
 typedef enum {
-  /* Non error codes */
-  KOSTIA_NOK = 0,
-  KOSTIA_OK = 1,
-  KOSTIA_EXECUTING = 2,
-  KOSTIA_CMD_RX = 3,
-  KOSTIA_DATA_RECEIVED = 4,
-  /* Error codes */
-  KOSTIA_ER_NO_LGN_MATCHES = -1,
-  KOSTIA_ER_WRONG_BUF_SIZE = -2,
-  KOSTIA_ER_LGN_REQUIRED = -3,
-  KOSTIA_ER_INVALID = -4,
-  KOSTIA_ER_NOT_INIT = -5,      /* Instance was not initialized */
-  KOSTIA_ER_TYPE_NOTFIND = -6,  /* Type not found */
-  KOSTIA_ER_CMD_NOTFIND = -7,   /* Command not found */
-  KOSTIA_ER_LGN_DENIED = -8,
-  KOSTIA_ER_WRONG_INDEX = -9    /* Invalid index received */
-} Kostia_Rsp_t;
+    /* Non error codes */
+    KOSTIA_NOK = 0,
+    KOSTIA_OK = 1,
+    KOSTIA_EXECUTING = 2,
+    KOSTIA_CMD_RX = 3,
+    KOSTIA_DATA_RECEIVED = 4,
+    /* Error codes */
+    KOSTIA_ER_NO_LGN_MATCHES = -1,
+    KOSTIA_ER_WRONG_BUF_SIZE = -2,
+    KOSTIA_ER_LGN_REQUIRED = -3,
+    KOSTIA_ER_INVALID = -4,
+    KOSTIA_ER_NOT_INIT = -5,      /* Instance was not initialized */
+    KOSTIA_ER_TYPE_NOTFIND = -6,  /* Type not found */
+    KOSTIA_ER_CMD_NOTFIND = -7,   /* Command not found */
+    KOSTIA_ER_LGN_DENIED = -8,
+    KOSTIA_ER_WRONG_INDEX = -9    /* Invalid index received */
+}Kostia_Rsp_t;
 
 typedef struct{
-  byte au08Command[_CMD_CODE_FILTER_SIZE];          /* Command code */
-  byte u08Mask;                                     /* Command code mask, to say what part of the Kostia data stream represents the command code */
-  Kostia_Rsp_t (*pfExecute)(byte *pCmd, Uart_t *);   /* Callback to command execute function */
+    byte au08Command[_CMD_CODE_FILTER_SIZE];          /* Command code */
+    byte u08Mask;                                     /* Command code mask, to say what part of the Kostia data stream represents the command code */
+    Kostia_Rsp_t (*pfExecute)(byte *pCmd, Uart_t *);   /* Callback to command execute function */
 }Kostia_CmdTable_t;
 
 

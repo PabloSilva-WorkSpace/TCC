@@ -23,6 +23,8 @@
 /******************************************************************************************************************************************************************************************************************************************************** 
     ### Defines 
 *********************************************************************************************************************************************************************************************************************************************************/
+#define _CMD_TABLE_MAX_SIZE (20)
+#define _CMD_CODE_FILTER_SIZE (5)
 
 
 /******************************************************************************************************************************************************************************************************************************************************** 
@@ -44,17 +46,50 @@ typedef enum {
 
 typedef enum {
     RHM_State_Idle = 0,
-    RHM_State_Process = 1, 
+    RHM_State_TxUart_Send_Request = 1,
+    RHM_State_RxUart_Notify_Response = 2,
+    RHM_State_Process = 3,
 }RHM_States_t;
 
+typedef struct {
+    Slot_t * pSlot;       /* Pointer to current slot */
+    Slot_t * pFirstSlot;   /* Pointer to first slot  - This slot is to config slaves */
+    Slot_t * pLastSlot;   /* Pointer to last slot */
+}ScheduleTable_t;
+
 typedef struct{
-    Slot_t *scheduleTable;
+    ScheduleTable_t scheduleTable;
     RxBuffer_t RxBuffer;
     TxBuffer_t TxBuffer;
     FSM_States_t FSM_State = FSM_State_Idle;
     FRM_States_t FRM_State = FRM_State_Idle;
     RHM_States_t RHM_State = RHM_State_Idle;
 }Uart_t;
+
+typedef enum {
+    /* Non error codes */
+    KOSTIA_NOK = 0,
+    KOSTIA_OK = 1,
+    KOSTIA_EXECUTING = 2,
+    KOSTIA_CMD_RX = 3,
+    KOSTIA_DATA_RECEIVED = 4,
+    /* Error codes */
+    KOSTIA_ER_NO_LGN_MATCHES = -1,
+    KOSTIA_ER_WRONG_BUF_SIZE = -2,
+    KOSTIA_ER_LGN_REQUIRED = -3,
+    KOSTIA_ER_INVALID = -4,
+    KOSTIA_ER_NOT_INIT = -5,      /* Instance was not initialized */
+    KOSTIA_ER_TYPE_NOTFIND = -6,  /* Type not found */
+    KOSTIA_ER_CMD_NOTFIND = -7,   /* Command not found */
+    KOSTIA_ER_LGN_DENIED = -8,
+    KOSTIA_ER_WRONG_INDEX = -9    /* Invalid index received */
+}Kostia_Rsp_t;
+
+typedef struct{
+    byte au08Command[_CMD_CODE_FILTER_SIZE];          /* Command code */
+    byte u08Mask;                                     /* Command code mask, to say what part of the Kostia data stream represents the command code */
+    Kostia_Rsp_t (*pfExecute)(byte *pCmd, Uart_t *);   /* Callback to command execute function */
+}Kostia_CmdTable_t;
 
 
 /******************************************************************************************************************************************************************************************************************************************************** 
@@ -82,8 +117,8 @@ int Comm_appl_FrameToBuffer( Uart_t * );
 int Comm_appl_Check_Frame_IsEcho( Uart_t * );
 int Comm_appl_Check_Frame_IsValid( Uart_t * );
 
-Slot_t *Comm_appl_Create_Schedule_Table(void);
-void Comm_appl_Insert_Slot(Slot_t *);
+void Comm_appl_Create_Schedule_Table( ScheduleTable_t * );
+void Comm_appl_Insert_Slot( ScheduleTable_t * );
 Slot_t *Comm_appl_Select_Next_Slot(Slot_t *);
 
 

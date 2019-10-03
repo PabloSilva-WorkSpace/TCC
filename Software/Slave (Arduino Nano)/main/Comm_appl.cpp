@@ -36,7 +36,7 @@ byte Comm_appl_FSM( Uart_t *pUart )
         {
             break;
         }
-        case FSM_State_Send:
+        case FSM_State_Send:   /* Start execute of frame sending on bus */
         {
             int TxBuff_Length;
             TxBuff_Length = Comm_appl_FrameToBuffer(pUart);
@@ -44,16 +44,16 @@ byte Comm_appl_FSM( Uart_t *pUart )
             Comm_appl_Request_ChangeOf_FSM_State(pUart, FSM_State_Sending);
             break;
         }
-        case FSM_State_Sending: /* Uma possibilidade para sair deste estado, talvez a ideal, é usar interrupção: Quando todos data bytes no TX FIFO forem transmitidos. */ 
+        case FSM_State_Sending:   /* Executing frame sending on bus */
         {
             if(Comm_protocol_Get_TxFIFO_Lenght() == 0){
-                Comm_appl_Request_ChangeOf_FSM_State(pUart, FSM_State_Error);
+                Comm_appl_Request_ChangeOf_FSM_State(pUart, FSM_State_Idle);
             }
             break;
         }
         case FSM_State_Error:
         {
-            /* ToDo[PENS] error handler */
+            /* ToDo[PENS] - error handler */
             Comm_appl_Request_ChangeOf_FSM_State(pUart, FSM_State_Idle);
             break;
         } 

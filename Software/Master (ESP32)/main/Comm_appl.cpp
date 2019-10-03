@@ -12,6 +12,18 @@
 #include "Comm_appl.h"
 
 
+/******************************************************************************************************************************************************************************************************************************************************** 
+    ### Global Variables into this scope (this file *.c)
+*********************************************************************************************************************************************************************************************************************************************************/
+/* Tabela de todas as mensagens de resposta disponíveis do Slaves para o ESP. Formatação da tabela: {{SID,TYPE}, byte, callback function} */
+static const Kostia_CmdTable_t CmdTable_FromSlaveToMaster[] = {
+//    {{0x01U, 0x01U}, 0x01U, Comm_appl_QueryID},       /* Response to command: Query if slave is configured */
+//    {{0x02U, 0x01U}, 0x01U, Comm_appl_SetID},         /* Response to command: Set ID to slave */
+//    {{0x03U, 0x01U}, 0x01U, Comm_appl_RequestData},   /* Response to command: Request slave's data */
+//    {{0x00U, 0x00U}, 0x00U, Comm_appl_CmdTableError}  /* Response to command: Must be the last element */
+};
+
+
 /********************************************************************************************************************************************************************************************************************************************************
     Função: Frame Send Machine (FSM)
     Descrição: Esta função é uma máquina de estados que controla o envio de frames
@@ -24,7 +36,7 @@ byte Comm_appl_FSM( Uart_t *pUart )
         {
             break;
         }
-        case FSM_State_Send:
+        case FSM_State_Send:   /* Start execute of frame sending on bus */
         {
             int TxBuff_Length;
             TxBuff_Length = Comm_appl_FrameToBuffer(pUart);
@@ -32,23 +44,22 @@ byte Comm_appl_FSM( Uart_t *pUart )
             Comm_appl_Request_ChangeOf_FSM_State(pUart, FSM_State_Sending);
             break;
         }
-        case FSM_State_Sending: /* O ideal é sair deste estado usando interrupção: Quando todos data bytes no TX FIFO forem transmitidos */
+        case FSM_State_Sending:   /* Executing frame sending on bus */
         {
             if(Comm_protocol_Get_TxFIFO_Length() == 0){
-                Comm_appl_Request_ChangeOf_FSM_State(pUart, FSM_State_Error);
-                //Comm_appl_Request_ChangeOf_FRM_State(pUart, FRM_State_Receiving);
+                Comm_appl_Request_ChangeOf_FSM_State(pUart, FSM_State_Idle);
             }
             break;
         }
         case FSM_State_Error:
         {
-            /* ToDo[PENS] - error handler */
+            /* ToDo[PS] - error handler */
             Comm_appl_Request_ChangeOf_FSM_State(pUart, FSM_State_Idle);
             break;
         } 
         default:
         {
-            /* ToDo[PENS] - default handler */
+            /* ToDo[PS] - default handler */
         }
     }    
     return 0;
@@ -134,9 +145,19 @@ byte Comm_appl_RHM(Uart_t *pUart)
         {
             break;
         }
+        case RHM_State_TxUart_Send_Request:
+        {
+            Comm_appl_Request_ChangeOf_FSM_State(pUart, FSM_State_Send);
+            Comm_appl_Request_ChangeOf_RHM_State(pUart, RHM_State_Idle);
+            break;
+        }
+        case RHM_State_RxUart_Notify_Response:
+        {
+            break;
+        }
         case RHM_State_Process:
         {
-            //if(Comm_appl_FindCommand(&pMainData->RxBuffer[_SID], pMainData) == KOSTIA_OK){
+            //if(Comm_appl_FindCommand(&pUart->RxBuffer[_SID], pUart) == KOSTIA_OK){
                 Comm_appl_Request_ChangeOf_RHM_State(pUart, RHM_State_Idle);
             //}     
             break;
@@ -225,18 +246,18 @@ void Comm_appl_Set_Frame_Checksum(Frame_t *pFrame)
 int Comm_appl_FrameToBuffer(Uart_t *pUart)
 {
     int i;
-    pUart->TxBuffer[_BREAK]  = pUart->scheduleTable->frame.Break;  //(char)pUart->scheduleTable->frame.Break;
-    pUart->TxBuffer[_SYNCH]  = pUart->scheduleTable->frame.Synch;
-    pUart->TxBuffer[_SID]    = pUart->scheduleTable->frame.SID;
-    pUart->TxBuffer[_TYPE]   = pUart->scheduleTable->frame.Type;
-    pUart->TxBuffer[_ID_SRC] = pUart->scheduleTable->frame.Id_Source;
-    pUart->TxBuffer[_ID_TRG] = pUart->scheduleTable->frame.Id_Target;
-    pUart->TxBuffer[_LENGHT] = pUart->scheduleTable->frame.Lenght;
-    for(i = 0; i < pUart->scheduleTable->frame.Lenght - 1; i++){
-        pUart->TxBuffer[_DATA+i] = pUart->scheduleTable->frame.Data[i];
+    pUart->TxBuffer[_BREAK]  = pUart->scheduleTable.pSlot->frame.Break;  //(char)pUart->scheduleTable->frame.Break;
+    pUart->TxBuffer[_SYNCH]  = pUart->scheduleTable.pSlot->frame.Synch;
+    pUart->TxBuffer[_SID]    = pUart->scheduleTable.pSlot->frame.SID;
+    pUart->TxBuffer[_TYPE]   = pUart->scheduleTable.pSlot->frame.Type;
+    pUart->TxBuffer[_ID_SRC] = pUart->scheduleTable.pSlot->frame.Id_Source;
+    pUart->TxBuffer[_ID_TRG] = pUart->scheduleTable.pSlot->frame.Id_Target;
+    pUart->TxBuffer[_LENGHT] = pUart->scheduleTable.pSlot->frame.Lenght;
+    for(i = 0; i < pUart->scheduleTable.pSlot->frame.Lenght - 1; i++){
+        pUart->TxBuffer[_DATA+i] = pUart->scheduleTable.pSlot->frame.Data[i];
     }
-    pUart->TxBuffer[_DATA+i] = pUart->scheduleTable->frame.Checksum;
-    return (7 + pUart->scheduleTable->frame.Lenght);
+    pUart->TxBuffer[_DATA+i] = pUart->scheduleTable.pSlot->frame.Checksum;
+    return (7 + pUart->scheduleTable.pSlot->frame.Lenght);
 }
 
 
@@ -274,30 +295,92 @@ int Comm_appl_Check_Frame_IsValid(Uart_t *pUart)
 }
 
 
-Slot_t *Comm_appl_Create_Schedule_Table(void)
+/********************************************************************************************************************************************************************************************************************************************************
+    Descrição: Cria a tabela de agandamento do ESP. A tabela de agendamento é implementada usando o conceito de Lista Ligada.
+    
+    \Parameters: (void)
+    
+    \Return value: (Slot_t *) - Retorno de um ponteiro para o primeiro elemento da Lista Ligada, ou primeiro slot da tabela de agendamento. 
+*********************************************************************************************************************************************************************************************************************************************************/
+void Comm_appl_Create_Schedule_Table(ScheduleTable_t * pScheduleTable)
 {
     byte Data[] = {}; //byte (*Data)[] = {0xA9, 0x1C, 0x47};
-    Slot_t *pSlot;
-    pSlot = (Slot_t *) malloc( sizeof(Slot_t *) );  /* Alocação dinamica de memória para armazenar uma "struct Slot" */
-    pSlot->nextSlot = pSlot;
-    Comm_appl_Set_Frame_Header(&pSlot->frame, 0x00, 0x55, 0x01, 0x01, 0x01, 0xFF, sizeof(Data) + 0x01);
-    Comm_appl_Set_Frame_Data(&pSlot->frame, Data, sizeof(Data));
-    Comm_appl_Set_Frame_Checksum(&pSlot->frame);
-    return pSlot;
+    pScheduleTable->pSlot = (Slot_t *) malloc( sizeof(Slot_t *) );  /* Alocação dinamica de memória para armazenar uma "struct Slot" */
+    pScheduleTable->pFirstSlot = pScheduleTable->pSlot;
+    pScheduleTable->pLastSlot = pScheduleTable->pSlot;
+    pScheduleTable->pSlot->nextSlot = pScheduleTable->pSlot;
+    /* Configuração inicial do primeiro slot (slot para mensagens de configuração dos slaves) */
+    Comm_appl_Set_Frame_Header(&pScheduleTable->pSlot->frame, 0x00, 0x55, 0x01, 0x01, 0x01, 0xFF, sizeof(Data) + 0x01);
+    Comm_appl_Set_Frame_Data(&pScheduleTable->pSlot->frame, Data, sizeof(Data));
+    Comm_appl_Set_Frame_Checksum(&pScheduleTable->pSlot->frame);
 }
 
 
-void Comm_appl_Insert_Slot(Slot_t *pCurrentSlot)
+/********************************************************************************************************************************************************************************************************************************************************
+    Descrição: Insere um novo elemento na lista lgada, ou um novo slot na tabela de agendamento. 
+    
+    \Parameters: (Slot_t *pCurrentSlot) - Ponteiro para uma estrutura Slot_t
+    
+    \Return value: (void)
+*********************************************************************************************************************************************************************************************************************************************************/
+void Comm_appl_Insert_Slot( ScheduleTable_t * pScheduleTable )
 {
-    struct Slot *pSlot, *pAuxSlot;
-    pAuxSlot->nextSlot = pCurrentSlot->nextSlot;
-    pSlot = (struct Slot *) malloc( sizeof(Slot_t *) );  //Alocação dinamica de memória para armazenar uma "struct Slot"
-    pSlot->nextSlot = pAuxSlot->nextSlot;
-    pCurrentSlot->nextSlot = pSlot;
+    Slot_t *pNewSlot, *pAuxSlot;
+    
+    pNewSlot = (Slot_t *) malloc( sizeof(Slot_t *) );  //Alocação dinamica de memória para armazenar uma "struct Slot"
+    pScheduleTable->pLastSlot->nextSlot = pNewSlot;
+    pNewSlot->nextSlot = pScheduleTable->pFirstSlot;
+    pScheduleTable->pLastSlot = pNewSlot;
 }
 
 
+/********************************************************************************************************************************************************************************************************************************************************
+    Descrição: Transiciona o ponteiro da tabela de agendamento para o próximo slot da tabela de agendamento.
+    
+    \Parameters: (Slot_t *pCurrentSlot) - Ponteiro para uma estrutura Slot_t
+    
+    \Return value: (Slot_t *) - Retorno de um ponteiro para o próximo elemento da lista ligada, ou próximo slot da tabela de agendamento
+*********************************************************************************************************************************************************************************************************************************************************/
 Slot_t *Comm_appl_Select_Next_Slot(Slot_t *pCurrentSlot)
 {
     return pCurrentSlot->nextSlot;
+}
+
+
+/******************************************************************************************************************************************************************************************************************************************************** 
+    Função
+    
+    Description: Performs the search of the received command in the tables of the test execution.
+    
+    \Parameters: *psInst Kostia Cmd instance.
+    
+    \Return value: KOSTIA_OK
+    \Return value: KOSTIA_ER_TYPE_NOTFIND
+    \Return value: KOSTIA_ER_CMD_NOTFIND
+*********************************************************************************************************************************************************************************************************************************************************/
+static Kostia_Rsp_t Comm_appl_FindCommand(byte *pAddr, Uart_t *pUart)
+{
+    byte lData[_CMD_CODE_FILTER_SIZE];
+    byte u08CounterCmd = 0U;
+    Kostia_Rsp_t eRsp = KOSTIA_ER_TYPE_NOTFIND;
+
+    u08CounterCmd = 0;
+    lData[0] = *(pAddr+0);
+    lData[1] = *(pAddr+1);
+
+    while (CmdTable_FromSlaveToMaster[u08CounterCmd].au08Command[0] != 0){
+        if((lData[0] == CmdTable_FromSlaveToMaster[u08CounterCmd].au08Command[0]) && 
+           (lData[1] == CmdTable_FromSlaveToMaster[u08CounterCmd].au08Command[1])){
+               eRsp = CmdTable_FromSlaveToMaster[u08CounterCmd].pfExecute(pAddr, pUart); /* Chamada da função que manipula um frame de resposta para o comando recebido */
+               if(eRsp == KOSTIA_OK){
+                   //Comm_appl_Request_ChangeOf_FSM_State(pUart, FSM_State_Send);
+               }
+               break;
+        }else{
+            /* Command not find */
+            eRsp = KOSTIA_ER_CMD_NOTFIND;
+        }
+        u08CounterCmd++;
+    }
+    return eRsp;
 }
