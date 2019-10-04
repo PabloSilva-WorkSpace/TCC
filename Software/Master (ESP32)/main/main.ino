@@ -29,16 +29,16 @@ void setup()
   Config_configUART();
   mainData.wifi.callback = &wifi_event_handler;      /* Definição da função de callback que trata dos eventos da rede WiFi. */
   mainData.wifi.event_group = xEventGroupCreate();   /* Criação de um eventgroup para sinalização do status da rede WiFi. */
-  //Config_configWIFI(mainData.wifi.callback, &mainData.wifi.event_group);
-  //vTaskDelay(2000/portTICK_PERIOD_MS);
+  Config_configWIFI(mainData.wifi.callback, &mainData.wifi.event_group);
+  vTaskDelay(2000/portTICK_PERIOD_MS);
 
-  //xEventGroupWaitBits( mainData.wifi.event_group, WIFI_CONNECTED_BIT, false, true, portMAX_DELAY );
+  xEventGroupWaitBits( mainData.wifi.event_group, WIFI_CONNECTED_BIT, false, true, portMAX_DELAY );
   
   /* Create Schedule Table */
   Comm_appl_Create_Schedule_Table(  &mainData.uart.scheduleTable );
   /* Tasks create */
-  xTaskCreatePinnedToCore(TaskFSRM, "TaskFSRM", 2048*2, NULL, 2, NULL, 0);
-  xTaskCreatePinnedToCore(TaskUART_TX, "TaskUART_TX", 2048*2, NULL, 3, NULL, 0);
+  xTaskCreatePinnedToCore(TaskFSRM, "TaskFSRM", 2048*3, NULL, 2, NULL, 0);
+  xTaskCreatePinnedToCore(TaskUART_TX, "TaskUART_TX", 2048*1, NULL, 3, NULL, 0);
 }
 
 
@@ -75,7 +75,6 @@ void TaskUART_TX(void* Parameters)
 {
   for(;;){
     digitalWrite(LED_ON_BOARD, !digitalRead(LED_ON_BOARD));
-    //Comm_appl_Request_ChangeOf_FSM_State(&mainData.uart, FSM_State_Send);
     Comm_appl_Request_ChangeOf_RHM_State(&mainData.uart, RHM_State_TxUart_Send_Request);
     vTaskDelay(500/portTICK_PERIOD_MS);
   }

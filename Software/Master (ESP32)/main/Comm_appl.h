@@ -26,6 +26,8 @@
 #define _CMD_TABLE_MAX_SIZE (20)
 #define _CMD_CODE_FILTER_SIZE (5)
 
+#define _SCHEDULE_TABLE_MAX_SIZE (10)
+
 
 /******************************************************************************************************************************************************************************************************************************************************** 
     ### Data Types 
@@ -52,9 +54,10 @@ typedef enum {
 }RHM_States_t;
 
 typedef struct {
-    Slot_t * pSlot;       /* Pointer to current slot */
-    Slot_t * pFirstSlot;   /* Pointer to first slot  - This slot is to config slaves */
-    Slot_t * pLastSlot;   /* Pointer to last slot */
+    Slot_t * pSlot;                           /* Pointer to current slot */
+    Slot_t * pFirstSlot;                      /* Pointer to first slot  - This slot is to config slaves */
+    Slot_t * pLastSlot;                       /* Pointer to last slot */
+    int Length;                               /* Quantity of slots */
 }ScheduleTable_t;
 
 typedef struct{
@@ -86,9 +89,9 @@ typedef enum {
 }Kostia_Rsp_t;
 
 typedef struct{
-    byte au08Command[_CMD_CODE_FILTER_SIZE];          /* Command code */
-    byte u08Mask;                                     /* Command code mask, to say what part of the Kostia data stream represents the command code */
-    Kostia_Rsp_t (*pfExecute)(byte *pCmd, Uart_t *);   /* Callback to command execute function */
+    char au08Command[_CMD_CODE_FILTER_SIZE];          /* Command code */
+    char u08Mask;                                     /* Command code mask, to say what part of the Kostia data stream represents the command code */
+    Kostia_Rsp_t (*pfExecute)(char *pCmd, Uart_t *);   /* Callback to command execute function */
 }Kostia_CmdTable_t;
 
 
@@ -119,7 +122,14 @@ int Comm_appl_Check_Frame_IsValid( Uart_t * );
 
 void Comm_appl_Create_Schedule_Table( ScheduleTable_t * );
 void Comm_appl_Insert_Slot( ScheduleTable_t * );
+byte Comm_appl_Define_Slave_ID( ScheduleTable_t * );
 Slot_t *Comm_appl_Select_Next_Slot(Slot_t *);
 
+/* CMD  Table Functions */
+static Kostia_Rsp_t Comm_appl_QueryID_Callback (char *pCmd, Uart_t *);
+static Kostia_Rsp_t Comm_appl_SetID_Callback (char *pCmd, Uart_t *);
+static Kostia_Rsp_t Comm_appl_RequestData_Callback (char *pCmd, Uart_t *);
+static Kostia_Rsp_t Comm_appl_CmdTableError(char *pAddr, Uart_t *);
+static Kostia_Rsp_t Comm_appl_FindCommand(char *pAddr, Uart_t *);
 
 #endif

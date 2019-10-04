@@ -75,7 +75,7 @@ esp_err_t wifi_event_handler( void *ctx, system_event_t *event )
             Serial.println((char*)event->event_info.disconnected.ssid); /* Checar a estrutura que contém a causa da falha de conexão */
             Serial.println(event->event_info.disconnected.ssid_len); /* Checar a estrutura que contém a causa da falha de conexão */
             Serial.println(event->event_info.disconnected.reason); /* Checar a estrutura que contém a causa da falha de conexão */
-            if(nAttempts < 10){
+            if(nAttempts < 3){
                 esp_wifi_connect();   /* ESP realiza nova tentativa de conexão com o AP da rede WiFi configurada */
                 nAttempts++;
                 Serial.println("ESP32 realizou nova tentativa de conexão com o AP");

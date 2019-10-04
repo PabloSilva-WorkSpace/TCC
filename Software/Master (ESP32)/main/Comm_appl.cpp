@@ -17,10 +17,10 @@
 *********************************************************************************************************************************************************************************************************************************************************/
 /* Tabela de todas as mensagens de resposta disponíveis do Slaves para o ESP. Formatação da tabela: {{SID,TYPE}, byte, callback function} */
 static const Kostia_CmdTable_t CmdTable_FromSlaveToMaster[] = {
-//    {{0x01U, 0x01U}, 0x01U, Comm_appl_QueryID},       /* Response to command: Query if slave is configured */
-//    {{0x02U, 0x01U}, 0x01U, Comm_appl_SetID},         /* Response to command: Set ID to slave */
-//    {{0x03U, 0x01U}, 0x01U, Comm_appl_RequestData},   /* Response to command: Request slave's data */
-//    {{0x00U, 0x00U}, 0x00U, Comm_appl_CmdTableError}  /* Response to command: Must be the last element */
+    {{0x01U, 0x02U}, 0x01U, Comm_appl_QueryID_Callback},         /* Response to command: Query if slave is configured */
+    {{0x02U, 0x02U}, 0x01U, Comm_appl_SetID_Callback},           /* Response to command: Set ID to slave */
+//    {{0x03U, 0x01U}, 0x01U, Comm_appl_RequestData_Callback},   /* Response to command: Request slave's data */
+    {{0x00U, 0x00U}, 0x00U, Comm_appl_CmdTableError}  /* Response to command: Must be the last element */
 };
 
 
@@ -109,7 +109,7 @@ byte Comm_appl_FRM( Uart_t *pUart )
             if(Comm_appl_Check_Frame_IsEcho(pUart) == FALSE){       /* Verifica se o frame recebido é eco: return{0: Não é eco | 1: É eco} */
                 if(Comm_appl_Check_Frame_IsValid(pUart) == TRUE){   /* Verifica se o frame recebido é válido: return{0: Não é válido | 1: É válido} */
                     Comm_appl_Request_ChangeOf_FRM_State(pUart, FRM_State_Idle);
-                    Comm_appl_Request_ChangeOf_RHM_State(pUart, RHM_State_Process);
+                    Comm_appl_Request_ChangeOf_RHM_State(pUart, RHM_State_RxUart_Notify_Response);
                 }else{
                     Comm_appl_Request_ChangeOf_FRM_State(pUart, FRM_State_Error);
                 }
@@ -147,19 +147,21 @@ byte Comm_appl_RHM(Uart_t *pUart)
         }
         case RHM_State_TxUart_Send_Request:
         {
+            pUart->scheduleTable.pSlot = pUart->scheduleTable.pSlot->nextSlot;
             Comm_appl_Request_ChangeOf_FSM_State(pUart, FSM_State_Send);
             Comm_appl_Request_ChangeOf_RHM_State(pUart, RHM_State_Idle);
             break;
         }
         case RHM_State_RxUart_Notify_Response:
         {
+            Comm_appl_Request_ChangeOf_RHM_State(pUart, RHM_State_Process);
             break;
         }
         case RHM_State_Process:
         {
-            //if(Comm_appl_FindCommand(&pUart->RxBuffer[_SID], pUart) == KOSTIA_OK){
+            if(Comm_appl_FindCommand(&pUart->RxBuffer[_SID], pUart) == KOSTIA_OK){
                 Comm_appl_Request_ChangeOf_RHM_State(pUart, RHM_State_Idle);
-            //}     
+            }     
             break;
         }
         default:
@@ -305,14 +307,38 @@ int Comm_appl_Check_Frame_IsValid(Uart_t *pUart)
 void Comm_appl_Create_Schedule_Table(ScheduleTable_t * pScheduleTable)
 {
     byte Data[] = {}; //byte (*Data)[] = {0xA9, 0x1C, 0x47};
+    byte ID_Master = 0x01;
     pScheduleTable->pSlot = (Slot_t *) malloc( sizeof(Slot_t *) );  /* Alocação dinamica de memória para armazenar uma "struct Slot" */
     pScheduleTable->pFirstSlot = pScheduleTable->pSlot;
     pScheduleTable->pLastSlot = pScheduleTable->pSlot;
     pScheduleTable->pSlot->nextSlot = pScheduleTable->pSlot;
+    pScheduleTable->Length = 1;
     /* Configuração inicial do primeiro slot (slot para mensagens de configuração dos slaves) */
     Comm_appl_Set_Frame_Header(&pScheduleTable->pSlot->frame, 0x00, 0x55, 0x01, 0x01, 0x01, 0xFF, sizeof(Data) + 0x01);
     Comm_appl_Set_Frame_Data(&pScheduleTable->pSlot->frame, Data, sizeof(Data));
     Comm_appl_Set_Frame_Checksum(&pScheduleTable->pSlot->frame);
+}
+
+
+/********************************************************************************************************************************************************************************************************************************************************
+    Descrição: Cria a tabela de agandamento do ESP. A tabela de agendamento é implementada usando o conceito de Lista Ligada.
+    
+    \Parameters: (void)
+    
+    \Return value: (Slot_t *) - Retorno de um ponteiro para o primeiro elemento da Lista Ligada, ou primeiro slot da tabela de agendamento. 
+*********************************************************************************************************************************************************************************************************************************************************/
+byte Comm_appl_Define_Slave_ID( ScheduleTable_t * pScheduleTable )
+{
+    byte i = 0x00, ID = 0x02;
+    Slot_t *pAux = pScheduleTable->pFirstSlot;
+    for(i = 0; i < pScheduleTable->Length; i++){
+        if( ID == pAux->frame.Id_Target ){
+            ID++;
+            i = 0;
+        }
+        pAux = Comm_appl_Select_Next_Slot(pAux);
+    }
+    return ID;
 }
 
 
@@ -325,12 +351,14 @@ void Comm_appl_Create_Schedule_Table(ScheduleTable_t * pScheduleTable)
 *********************************************************************************************************************************************************************************************************************************************************/
 void Comm_appl_Insert_Slot( ScheduleTable_t * pScheduleTable )
 {
-    Slot_t *pNewSlot, *pAuxSlot;
+    Slot_t *pNewSlot;
     
     pNewSlot = (Slot_t *) malloc( sizeof(Slot_t *) );  //Alocação dinamica de memória para armazenar uma "struct Slot"
-    pScheduleTable->pLastSlot->nextSlot = pNewSlot;
     pNewSlot->nextSlot = pScheduleTable->pFirstSlot;
+    pScheduleTable->pSlot = pScheduleTable->pLastSlot;
+    pScheduleTable->pSlot->nextSlot = pNewSlot;
     pScheduleTable->pLastSlot = pNewSlot;
+    pScheduleTable->Length++;
 }
 
 
@@ -358,10 +386,10 @@ Slot_t *Comm_appl_Select_Next_Slot(Slot_t *pCurrentSlot)
     \Return value: KOSTIA_ER_TYPE_NOTFIND
     \Return value: KOSTIA_ER_CMD_NOTFIND
 *********************************************************************************************************************************************************************************************************************************************************/
-static Kostia_Rsp_t Comm_appl_FindCommand(byte *pAddr, Uart_t *pUart)
+static Kostia_Rsp_t Comm_appl_FindCommand(char *pAddr, Uart_t *pUart)
 {
-    byte lData[_CMD_CODE_FILTER_SIZE];
-    byte u08CounterCmd = 0U;
+    char lData[_CMD_CODE_FILTER_SIZE];
+    char u08CounterCmd = 0U;
     Kostia_Rsp_t eRsp = KOSTIA_ER_TYPE_NOTFIND;
 
     u08CounterCmd = 0;
@@ -383,4 +411,103 @@ static Kostia_Rsp_t Comm_appl_FindCommand(byte *pAddr, Uart_t *pUart)
         u08CounterCmd++;
     }
     return eRsp;
+}
+
+
+/******************************************************************************************************************************************************************************************************************************************************** 
+    Função
+    
+    Description: Verifica se o campo mainData.frame.Id_Source =! 0  
+    
+    \Parameters: u08 *pCmd - command received from Kostia Com
+    
+    \Return value: Kostia_TRsp
+*********************************************************************************************************************************************************************************************************************************************************/
+static Kostia_Rsp_t Comm_appl_QueryID_Callback(char *pCmd, Uart_t *pUart)
+{
+    Serial.println("Query ID");
+    if(pUart->scheduleTable.pFirstSlot->frame.Id_Source == 0x01){      
+        Serial.println("True");
+        pUart->scheduleTable.pFirstSlot->frame.Break = 0x00;                                                              /* Break signal */
+        pUart->scheduleTable.pFirstSlot->frame.Synch = 0x55;                                                              /* Synch signal */
+        pUart->scheduleTable.pFirstSlot->frame.SID = 0x02;                                                                /* Identificador de serviço da mensagem */
+        pUart->scheduleTable.pFirstSlot->frame.Type = 0x01;                                                               /* Tipo de módulo transmissor */
+        pUart->scheduleTable.pFirstSlot->frame.Id_Source = 0x01;                                                          /* ID do módulo transmissor */
+        pUart->scheduleTable.pFirstSlot->frame.Id_Target = Comm_appl_Define_Slave_ID( &pUart->scheduleTable );            /* ID do módulo alvo */
+        pUart->scheduleTable.pFirstSlot->frame.Lenght = 0x01;                                                             /* Comprimento da mensagem */
+        pUart->scheduleTable.pFirstSlot->frame.Checksum = 0x00;                                                           /* Checksum */
+        /* Put pSlot in last slot */
+        pUart->scheduleTable.pSlot = pUart->scheduleTable.pLastSlot;
+        return KOSTIA_OK;
+    }else{
+        return KOSTIA_NOK;
+    }
+}
+
+
+/******************************************************************************************************************************************************************************************************************************************************** 
+    Função
+    
+    Description: Function to read teh HW
+    
+    \Parameters: u08 *pCmd - command received from Kostia Com
+    
+    \Return value: Kostia_TRsp
+*********************************************************************************************************************************************************************************************************************************************************/
+static Kostia_Rsp_t Comm_appl_SetID_Callback(char *pCmd, Uart_t *pUart)
+{
+    Serial.println("Set ID");
+    if(pUart->scheduleTable.pFirstSlot->frame.Id_Source == 0x01){
+        Serial.println("True");
+        pUart->scheduleTable.pFirstSlot->frame.Break = 0x00;                /* Break signal */
+        pUart->scheduleTable.pFirstSlot->frame.Synch = 0x55;                /* Synch signal */
+        pUart->scheduleTable.pFirstSlot->frame.SID = 0x01;                  /* Identificador de serviço da mensagem */
+        pUart->scheduleTable.pFirstSlot->frame.Type = 0x01;                 /* Tipo de módulo transmissor */
+        pUart->scheduleTable.pFirstSlot->frame.Id_Source = 0x01;            /* ID do módulo transmissor */
+        pUart->scheduleTable.pFirstSlot->frame.Id_Target = 0xFF;            /* ID do módulo alvo */
+        pUart->scheduleTable.pFirstSlot->frame.Lenght = 0x01;               /* Comprimento da mensagem */
+        pUart->scheduleTable.pFirstSlot->frame.Checksum = 0x00;             /* Checksum */
+        /* Insert new slot in schedule table */
+        Comm_appl_Insert_Slot(&pUart->scheduleTable);
+        /* Configuração inicial do primeiro slot (slot para mensagens de configuração dos slaves) */
+        Comm_appl_Set_Frame_Header(&pUart->scheduleTable.pLastSlot->frame, 0x00, 0x55, 0x03, 0x01, 0x01, pUart->RxBuffer[_ID_SRC], 0x01);
+        Comm_appl_Set_Frame_Checksum(&pUart->scheduleTable.pLastSlot->frame);
+        /* Put pSlot in last slot */
+        pUart->scheduleTable.pSlot = pUart->scheduleTable.pLastSlot;
+        return KOSTIA_OK;
+    }else{
+        return KOSTIA_NOK;
+    }
+}
+
+
+/******************************************************************************************************************************************************************************************************************************************************** 
+    Função
+    
+    Description: Function to read teh HW
+    
+    \Parameters: u08 *pCmd - command received from Kostia Com
+    
+    \Return value: Kostia_TRsp
+*********************************************************************************************************************************************************************************************************************************************************/
+static Kostia_Rsp_t Comm_appl_RequestData_Callback(char *pCmd, Uart_t *pUart)
+{
+    /* Ler entrada os pinos de entrada para pegar os valores do sensor e controlar a saída. Depende do módulo. */
+    return KOSTIA_NOK;
+}
+
+
+/******************************************************************************************************************************************************************************************************************************************************** 
+    Função
+    
+    Description: Function to report error in the command table
+    
+    \Parameters: u08 *pCmd - command received from Kostia Com
+    
+    \Return value: Kostia_TRsp
+*********************************************************************************************************************************************************************************************************************************************************/
+static Kostia_Rsp_t Comm_appl_CmdTableError(char *pCmd, Uart_t *pUart)
+{
+    /* Trata a chegada de uma mensagem não registrada */
+    return KOSTIA_NOK;
 }
