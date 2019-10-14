@@ -19,7 +19,7 @@
 static const Kostia_CmdTable_t CmdTable_FromSlaveToMaster[] = {
     {{0x01U, 0x02U}, 0x01U, Comm_appl_QueryID_Callback},         /* Response to command: Query if slave is configured */
     {{0x02U, 0x02U}, 0x01U, Comm_appl_SetID_Callback},           /* Response to command: Set ID to slave */
-//    {{0x03U, 0x01U}, 0x01U, Comm_appl_RequestData_Callback},   /* Response to command: Request slave's data */
+    //{{0x03U, 0x01U}, 0x01U, Comm_appl_RequestData_Callback},   /* Response to command: Request slave's data */
     {{0x00U, 0x00U}, 0x00U, Comm_appl_CmdTableError}  /* Response to command: Must be the last element */
 };
 
@@ -352,8 +352,7 @@ byte Comm_appl_Define_Slave_ID( ScheduleTable_t * pScheduleTable )
 void Comm_appl_Insert_Slot( ScheduleTable_t * pScheduleTable )
 {
     Slot_t *pNewSlot;
-    
-    pNewSlot = (Slot_t *) malloc( sizeof(Slot_t *) );  //Alocação dinamica de memória para armazenar uma "struct Slot"
+    pNewSlot = (Slot_t *) pvPortMalloc( sizeof(Slot_t) );  /* Alocação dinamica de memória via FreeRTOS. O FreeRTOS deve gerenciar esta alocação, pois esta numa camada superior ao hardware do ESP */
     pNewSlot->nextSlot = pScheduleTable->pFirstSlot;
     pScheduleTable->pSlot = pScheduleTable->pLastSlot;
     pScheduleTable->pSlot->nextSlot = pNewSlot;

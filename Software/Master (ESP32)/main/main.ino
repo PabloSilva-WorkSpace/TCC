@@ -37,8 +37,8 @@ void setup()
   /* Create Schedule Table */
   Comm_appl_Create_Schedule_Table(  &mainData.uart.scheduleTable );
   /* Tasks create */
-  xTaskCreatePinnedToCore(TaskFSRM, "TaskFSRM", 2048*3, NULL, 2, NULL, 0);
-  xTaskCreatePinnedToCore(TaskUART_TX, "TaskUART_TX", 2048*1, NULL, 3, NULL, 0);
+  xTaskCreatePinnedToCore(TaskFSRM, "TaskFSRM", 2048*2, NULL, 2, NULL, 0);
+  xTaskCreatePinnedToCore(TaskUART_TX, "TaskUART_TX", 2048*1, NULL, 1, NULL, 0);
 }
 
 
