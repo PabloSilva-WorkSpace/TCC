@@ -59,8 +59,8 @@ struct Slot{
 
 typedef struct Slot Slot_t;
 
-typedef char RxBuffer_t[_RX_BUFFER_SIZE];
-typedef char TxBuffer_t[_TX_BUFFER_SIZE];
+typedef byte RxBuffer_t[_RX_BUFFER_SIZE];
+typedef byte TxBuffer_t[_TX_BUFFER_SIZE];
 
 
 /******************************************************************************************************************************************************************************************************************************************************** 
@@ -76,7 +76,6 @@ int Comm_protocol_Frame_Read_Request( TxBuffer_t *, int );
 
 int Comm_protocol_Get_TxFIFO_Length( void );
 int Comm_protocol_Get_RxFIFO_Length( void );
-int Comm_protocol_Get_RxBUFFER_Length( void );
 
 
 #endif

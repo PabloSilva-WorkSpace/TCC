@@ -73,10 +73,9 @@ static const int TX_BUF_SIZE = 256;
 *********************************************************************************************************************************************************************************************************************************************************/
 void Config_configGPIO( void );
 void Config_configUART( void );
-void Config_configWIFI( esp_err_t (*fCallback)(void *, system_event_t *), EventGroupHandle_t * );
-void wifi_init_sta( char * ssid, char * password, esp_err_t (*fCallback)(void *, system_event_t *), EventGroupHandle_t *  );
+void Config_configWIFI( void (*fCallback)(WiFiEvent_t, WiFiEventInfo_t), EventGroupHandle_t * );
+void wifi_init_sta( void );
 void wifi_init_ap( void );
-void start_dhcp_server( void );
 
 
 #endif

@@ -19,7 +19,7 @@
 static const Kostia_CmdTable_t CmdTable_FromSlaveToMaster[] = {
     {{0x01U, 0x02U}, 0x01U, Comm_appl_QueryID_Callback},         /* Response to command: Query if slave is configured */
     {{0x02U, 0x02U}, 0x01U, Comm_appl_SetID_Callback},           /* Response to command: Set ID to slave */
-    //{{0x03U, 0x01U}, 0x01U, Comm_appl_RequestData_Callback},   /* Response to command: Request slave's data */
+//    {{0x03U, 0x01U}, 0x01U, Comm_appl_RequestData_Callback},   /* Response to command: Request slave's data */
     {{0x00U, 0x00U}, 0x00U, Comm_appl_CmdTableError}  /* Response to command: Must be the last element */
 };
 
@@ -78,14 +78,14 @@ byte Comm_appl_FRM( Uart_t *pUart )
     switch (pUart->FRM_State){
         case FRM_State_Idle:
         {
-            if(Comm_protocol_Get_RxBUFFER_Length() > 0){   /* Verifica a quantidade de bytes armazenados no Rx_Buffer. Se for > 0, então significa que há bytes chegando e é necessário alterar o estado da FRM */
+            if(Comm_protocol_Get_RxFIFO_Length() > 0){   /* Verifica a quantidade de bytes armazenados no Rx_Buffer. Se for > 0, então significa que há bytes chegando e é necessário alterar o estado da FRM */
                 Comm_appl_Request_ChangeOf_FRM_State(pUart, FRM_State_Receiving);
             }
             break;
         }
         case FRM_State_Receiving:
         {
-            RxBuff_Length = Comm_protocol_Get_RxBUFFER_Length();
+            RxBuff_Length = Comm_protocol_Get_RxFIFO_Length();
             if(RxBuff_Length != RxBuff_Length_Previous){
                 RxBuff_Length_Previous = RxBuff_Length;
                 RxBuff_Timeout = 0;
@@ -352,7 +352,8 @@ byte Comm_appl_Define_Slave_ID( ScheduleTable_t * pScheduleTable )
 void Comm_appl_Insert_Slot( ScheduleTable_t * pScheduleTable )
 {
     Slot_t *pNewSlot;
-    pNewSlot = (Slot_t *) pvPortMalloc( sizeof(Slot_t) );  /* Alocação dinamica de memória via FreeRTOS. O FreeRTOS deve gerenciar esta alocação, pois esta numa camada superior ao hardware do ESP */
+    
+    pNewSlot = (Slot_t *) malloc( sizeof(Slot_t *) );  //Alocação dinamica de memória para armazenar uma "struct Slot"
     pNewSlot->nextSlot = pScheduleTable->pFirstSlot;
     pScheduleTable->pSlot = pScheduleTable->pLastSlot;
     pScheduleTable->pSlot->nextSlot = pNewSlot;
@@ -385,10 +386,10 @@ Slot_t *Comm_appl_Select_Next_Slot(Slot_t *pCurrentSlot)
     \Return value: KOSTIA_ER_TYPE_NOTFIND
     \Return value: KOSTIA_ER_CMD_NOTFIND
 *********************************************************************************************************************************************************************************************************************************************************/
-static Kostia_Rsp_t Comm_appl_FindCommand(char *pAddr, Uart_t *pUart)
+static Kostia_Rsp_t Comm_appl_FindCommand(byte *pAddr, Uart_t *pUart)
 {
-    char lData[_CMD_CODE_FILTER_SIZE];
-    char u08CounterCmd = 0U;
+    byte lData[_CMD_CODE_FILTER_SIZE];
+    byte u08CounterCmd = 0U;
     Kostia_Rsp_t eRsp = KOSTIA_ER_TYPE_NOTFIND;
 
     u08CounterCmd = 0;
@@ -422,7 +423,7 @@ static Kostia_Rsp_t Comm_appl_FindCommand(char *pAddr, Uart_t *pUart)
     
     \Return value: Kostia_TRsp
 *********************************************************************************************************************************************************************************************************************************************************/
-static Kostia_Rsp_t Comm_appl_QueryID_Callback(char *pCmd, Uart_t *pUart)
+static Kostia_Rsp_t Comm_appl_QueryID_Callback(byte *pCmd, Uart_t *pUart)
 {
     Serial.println("Query ID");
     if(pUart->scheduleTable.pFirstSlot->frame.Id_Source == 0x01){      
@@ -453,7 +454,7 @@ static Kostia_Rsp_t Comm_appl_QueryID_Callback(char *pCmd, Uart_t *pUart)
     
     \Return value: Kostia_TRsp
 *********************************************************************************************************************************************************************************************************************************************************/
-static Kostia_Rsp_t Comm_appl_SetID_Callback(char *pCmd, Uart_t *pUart)
+static Kostia_Rsp_t Comm_appl_SetID_Callback(byte *pCmd, Uart_t *pUart)
 {
     Serial.println("Set ID");
     if(pUart->scheduleTable.pFirstSlot->frame.Id_Source == 0x01){
@@ -489,7 +490,7 @@ static Kostia_Rsp_t Comm_appl_SetID_Callback(char *pCmd, Uart_t *pUart)
     
     \Return value: Kostia_TRsp
 *********************************************************************************************************************************************************************************************************************************************************/
-static Kostia_Rsp_t Comm_appl_RequestData_Callback(char *pCmd, Uart_t *pUart)
+static Kostia_Rsp_t Comm_appl_RequestData_Callback(byte *pCmd, Uart_t *pUart)
 {
     /* Ler entrada os pinos de entrada para pegar os valores do sensor e controlar a saída. Depende do módulo. */
     return KOSTIA_NOK;
@@ -505,7 +506,7 @@ static Kostia_Rsp_t Comm_appl_RequestData_Callback(char *pCmd, Uart_t *pUart)
     
     \Return value: Kostia_TRsp
 *********************************************************************************************************************************************************************************************************************************************************/
-static Kostia_Rsp_t Comm_appl_CmdTableError(char *pCmd, Uart_t *pUart)
+static Kostia_Rsp_t Comm_appl_CmdTableError(byte *pCmd, Uart_t *pUart)
 {
     /* Trata a chegada de uma mensagem não registrada */
     return KOSTIA_NOK;

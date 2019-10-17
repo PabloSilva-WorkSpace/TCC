@@ -89,9 +89,9 @@ typedef enum {
 }Kostia_Rsp_t;
 
 typedef struct{
-    char au08Command[_CMD_CODE_FILTER_SIZE];          /* Command code */
-    char u08Mask;                                     /* Command code mask, to say what part of the Kostia data stream represents the command code */
-    Kostia_Rsp_t (*pfExecute)(char *pCmd, Uart_t *);   /* Callback to command execute function */
+    byte au08Command[_CMD_CODE_FILTER_SIZE];          /* Command code */
+    byte u08Mask;                                     /* Command code mask, to say what part of the Kostia data stream represents the command code */
+    Kostia_Rsp_t (*pfExecute)(byte *pCmd, Uart_t *);   /* Callback to command execute function */
 }Kostia_CmdTable_t;
 
 
@@ -126,10 +126,10 @@ byte Comm_appl_Define_Slave_ID( ScheduleTable_t * );
 Slot_t *Comm_appl_Select_Next_Slot(Slot_t *);
 
 /* CMD  Table Functions */
-static Kostia_Rsp_t Comm_appl_QueryID_Callback (char *pCmd, Uart_t *);
-static Kostia_Rsp_t Comm_appl_SetID_Callback (char *pCmd, Uart_t *);
-static Kostia_Rsp_t Comm_appl_RequestData_Callback (char *pCmd, Uart_t *);
-static Kostia_Rsp_t Comm_appl_CmdTableError(char *pAddr, Uart_t *);
-static Kostia_Rsp_t Comm_appl_FindCommand(char *pAddr, Uart_t *);
+static Kostia_Rsp_t Comm_appl_QueryID_Callback (byte *pCmd, Uart_t *);
+static Kostia_Rsp_t Comm_appl_SetID_Callback (byte *pCmd, Uart_t *);
+static Kostia_Rsp_t Comm_appl_RequestData_Callback (byte *pCmd, Uart_t *);
+static Kostia_Rsp_t Comm_appl_CmdTableError(byte *pAddr, Uart_t *);
+static Kostia_Rsp_t Comm_appl_FindCommand(byte *pAddr, Uart_t *);
 
 #endif

@@ -45,38 +45,36 @@ const char html_page[] PROGMEM = "<html>\n<head>\n<meta name=\"viewport\" conten
  *
  * @return     { description_of_the_return_value }
 *********************************************************************************************************************************************************************************************************************************************************/
-esp_err_t wifi_event_handler( void *ctx, system_event_t *event )
+void wifi_event_handler( WiFiEvent_t event, WiFiEventInfo_t info )
 {
     static int nAttempts = 0;
-    esp_err_t resp;
-    EventGroupHandle_t * event_group;
-    event_group = (EventGroupHandle_t*)ctx;
+    //EventGroupHandle_t * event_group;
+    //event_group = (EventGroupHandle_t*)ctx;
     
-    switch( event->event_id ) 
+    switch( event )
     {
         /* Evento disparado quando o stack tcp for inicializado */
         case SYSTEM_EVENT_STA_START:{
-            resp = esp_wifi_connect(); /* O ESP inicia a tentativa (intenção) de conexão com o AP da rede WiFi configurada */
             Serial.println("ESP32 iniciou o modo STA e realizou a primeira tentativa de conexão com o AP");
             break;
         }
         /* Evento disparado quando o ESP recebe um IP do roteador (conexão bem sucedida entre ESP e Roteador) */
         case SYSTEM_EVENT_STA_GOT_IP:{
-            if( DEBUG )
-                ESP_LOGI( "Wifi", "got ip:%s", ip4addr_ntoa( &event->event_info.got_ip.ip_info.ip ));
-            xEventGroupSetBits( *event_group, WIFI_CONNECTED_BIT ); /* Sinaliza por meio deste event group que a conexão WiFi foi estabelecida */
+            //Serial.printf( "ESP32 conectou-se ao AP, e adquiriu IP: %s", event->event_info.got_ip);
+            //xEventGroupSetBits( *event_group, WIFI_CONNECTED_BIT ); /* Sinaliza por meio deste event group que a conexão WiFi foi estabelecida */
+            Serial.println( WiFi.localIP() );
             nAttempts = 0;
             Serial.println("ESP32 conectou-se a um AP e recebeu um IP");
             break;
         }
         /* Evento disparado quando o ESP perde a conexão com a rede WiFi ou quando a tentativa de conexão não ocorrer */
         case SYSTEM_EVENT_STA_DISCONNECTED:{
-            xEventGroupClearBits( *event_group, WIFI_CONNECTED_BIT ); /* Reseta o bit do event group que sinaliza o status da conexão WiFi */
-            Serial.println((char*)event->event_info.disconnected.ssid); /* Checar a estrutura que contém a causa da falha de conexão */
-            Serial.println(event->event_info.disconnected.ssid_len); /* Checar a estrutura que contém a causa da falha de conexão */
-            Serial.println(event->event_info.disconnected.reason); /* Checar a estrutura que contém a causa da falha de conexão */
+            //xEventGroupClearBits( *event_group, WIFI_CONNECTED_BIT ); /* Reseta o bit do event group que sinaliza o status da conexão WiFi */
+            //Serial.println((char*)event->event_info.disconnected.ssid); /* Checar a estrutura que contém a causa da falha de conexão */
+            //Serial.println(event->event_info.disconnected.ssid_len); /* Checar a estrutura que contém a causa da falha de conexão */
+            //Serial.println(event->event_info.disconnected.reason); /* Checar a estrutura que contém a causa da falha de conexão */
             if(nAttempts < 3){
-                esp_wifi_connect();   /* ESP realiza nova tentativa de conexão com o AP da rede WiFi configurada */
+                wifi_init_sta();
                 nAttempts++;
                 Serial.println("ESP32 realizou nova tentativa de conexão com o AP");
             } else{
@@ -99,7 +97,7 @@ esp_err_t wifi_event_handler( void *ctx, system_event_t *event )
             Serial.println("Dispositivo STA conectou-se ao AP do ESP32");
             if( DEBUG )
                 ESP_LOGI( "Wifi", "Dispositivo conectado ao WiFi AP.\n" );
-            xEventGroupSetBits( *event_group, WIFI_CONNECTED_BIT );   /* Se chegou aqui significa que o Wifi do ESP foi inicializado corretamente no modo AP. Então, sinaliza por meio do event group */
+            //xEventGroupSetBits( *event_group, WIFI_CONNECTED_BIT );   /* Se chegou aqui significa que o Wifi do ESP foi inicializado corretamente no modo AP. Então, sinaliza por meio do event group */
             break;
         }
         /* Evento disparado quando algum dispositivo no modo Station desconectar-se do AP do ESP32 */
@@ -107,7 +105,7 @@ esp_err_t wifi_event_handler( void *ctx, system_event_t *event )
             Serial.println("Dispositivo Station desconectou-se do AP do ESP32");
             if( DEBUG )
                 ESP_LOGI( "Wifi", "Dispositivo conectado ao WiFi AP.\n" );    
-            xEventGroupClearBits( *event_group, WIFI_CONNECTED_BIT );   /* Sinaliza, ou informa, por meio do event group que um cliente foi desconectado do AP do ESP*/
+            //xEventGroupClearBits( *event_group, WIFI_CONNECTED_BIT );   /* Sinaliza, ou informa, por meio do event group que um cliente foi desconectado do AP do ESP*/
             break;
         }
         /* Evento não previsto */
@@ -115,7 +113,6 @@ esp_err_t wifi_event_handler( void *ctx, system_event_t *event )
             break;
         }
     }
-    return ESP_OK;
 }
 
 

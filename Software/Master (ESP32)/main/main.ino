@@ -3,6 +3,9 @@
  * Developer: Pablo
  * 
  * ToDo[PS] - need to improve the comments
+ * 1) Alocação de slots - Dinamica ou Estatica
+ * 2) Gravar e ler dados na NVS
+ * 3) Comunicação MQTT
 *********************************************************************************************************************************************************************************************************************************************************/
 
 
@@ -32,13 +35,13 @@ void setup()
   Config_configWIFI(mainData.wifi.callback, &mainData.wifi.event_group);
   vTaskDelay(2000/portTICK_PERIOD_MS);
 
-  xEventGroupWaitBits( mainData.wifi.event_group, WIFI_CONNECTED_BIT, false, true, portMAX_DELAY );
+  //xEventGroupWaitBits( mainData.wifi.event_group, WIFI_CONNECTED_BIT, false, true, portMAX_DELAY );
   
   /* Create Schedule Table */
   Comm_appl_Create_Schedule_Table(  &mainData.uart.scheduleTable );
   /* Tasks create */
-  xTaskCreatePinnedToCore(TaskFSRM, "TaskFSRM", 2048*2, NULL, 2, NULL, 0);
-  xTaskCreatePinnedToCore(TaskUART_TX, "TaskUART_TX", 2048*1, NULL, 1, NULL, 0);
+  xTaskCreatePinnedToCore(TaskFSRM, "TaskFSRM", 2048*3, NULL, 2, NULL, 0);
+  xTaskCreatePinnedToCore(TaskUART_TX, "TaskUART_TX", 2048*1, NULL, 3, NULL, 0);
 }
 
 
@@ -79,3 +82,15 @@ void TaskUART_TX(void* Parameters)
     vTaskDelay(500/portTICK_PERIOD_MS);
   }
 }
+
+
+
+
+/*
+Posts Relevantes / Bibliografia 
+
+https://techtutorialsx.com/2019/08/15/esp32-arduino-getting-wifi-event-information/
+Tutorial que ensina a manipular usar as informações de eventos do wifi do ESP32
+
+
+*/
