@@ -13,27 +13,14 @@
 
 
 /********************************************************************************************************************************************************************************************************************************************************
+    ### Extern Global Variables
+*********************************************************************************************************************************************************************************************************************************************************/
+EventGroupHandle_t gWiFi_appl_event_group = xEventGroupCreate();   /* Criação de um eventgroup para sinalização do status da rede WiFi. */
+
+
+/********************************************************************************************************************************************************************************************************************************************************
     ### Global Variables into this scope (this file *.c) 
 *********************************************************************************************************************************************************************************************************************************************************/
-//extern const uint8_t server_html_page_form_start[] asm("_binary_server_html_page_form_start");  /* Embedding Binary Data */
-//extern const uint8_t server_html_page_form_end[]   asm("_binary_server_html_page_form_end");
-const static char http_html_hdr[] = "HTTP/1.1 200 OK\nContent-type: text/html\n\n";
-const int WIFI_CONNECTED_BIT = BIT0;
-const char html_page[] PROGMEM = "<html>\n<head>\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" charset=\"UTF-8\">\n<style>\nbody {font-family: Arial;}\n"
-                                 "form {border: 3px solid #f1f1f1;}\ninput[type=text], input[type=password] {\n  width: 100%;\n  padding: 12px 20px;\n"
-                                 "margin: 8px 0;\n display: inline-block;\n  border: 1px solid #ccc;\n box-sizing: border-box;\n}\nbutton {\n background-color: #4CAF50;\n"
-                                 "color: white;\n padding: 14px 20px;\n margin: 8px 0;\n border: none;\n cursor: pointer;\n width: 100%;\n}\nbutton:hover {\n"
-                                 "opacity: 0.8;\n}\n.container {\n  padding: 16px;\n}\n</style>\n</head>\n<body>\n<script>\n\nfunction send() {\n"
-                                 "document.getElementById(\"msg\").innerHTML = \"\";\n  var ssid = document.getElementById(\"ssid\").value;\n"
-                                 "var password = document.getElementById(\"password\").value;\n\n if( ssid == '' || ssid.length < 3)\n {\n"
-                                 "alert(\"O campo ssid deve ter 3 ou mais caracteres.\");\n return;\n }\n\n if( password == '' || password.length < 8)\n {\n"
-                                 "alert(\"O campo password deve ter 8 ou mais caracteres.\");\n return;\n }\n\n var http = new XMLHttpRequest();\n  var url = '';\n"
-                                 "var params = 'ssid='+ssid+'&password='+password;\n  http.open('POST', url, true);\n http.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');\n"
-                                 "http.onreadystatechange = function() {\n if(http.readyState == 4 && http.status == 200) {\n if(http.responseText === \"1\")\n {\n"
-                                 "document.getElementById(\"msg\").innerHTML = \"<b>As configurações da rede WiFi foram alteradas com sucesso! Desligue e ligue o dispositivo da rede elétrica para que as novas configurações sejam carregadas.</b>\";\n"
-                                 "}\n }\n }\n http.send(params);\n}\n</script>\n\n <div align=\"center\">\n <label id=\"msg\"></label>\n </div>\n <hr>\n <div class=\"container\">\n"
-                                 "<label for=\"ssid\"><b>SSID</b></label>\n <input type=\"text\" placeholder=\"Enter SSID\" name=\"ssid\" required id=\"ssid\">\n <label for=\"password\"><b>Password</b></label>\n"
-                                 "<input type=\"password\" placeholder=\"Enter Password\" name=\"password\" required id=\"password\"> \n <button onclick=\"send()\">Save</button>\n </div>\n\n</body>\n</html>";
 
 
 /********************************************************************************************************************************************************************************************************************************************************
@@ -48,37 +35,33 @@ const char html_page[] PROGMEM = "<html>\n<head>\n<meta name=\"viewport\" conten
 void wifi_event_handler( WiFiEvent_t event, WiFiEventInfo_t info )
 {
     static int nAttempts = 0;
-    //EventGroupHandle_t * event_group;
-    //event_group = (EventGroupHandle_t*)ctx;
-    
     switch( event )
     {
         /* Evento disparado quando o stack tcp for inicializado */
         case SYSTEM_EVENT_STA_START:{
-            Serial.println("ESP32 iniciou o modo STA e realizou a primeira tentativa de conexão com o AP");
+            if ( DEBUG )
+                Serial.println("WiFi: ESP32 iniciou o driver WiFi no modo STA e vai tentar conectar-se ao AP");
             break;
         }
         /* Evento disparado quando o ESP recebe um IP do roteador (conexão bem sucedida entre ESP e Roteador) */
         case SYSTEM_EVENT_STA_GOT_IP:{
-            //Serial.printf( "ESP32 conectou-se ao AP, e adquiriu IP: %s", event->event_info.got_ip);
-            //xEventGroupSetBits( *event_group, WIFI_CONNECTED_BIT ); /* Sinaliza por meio deste event group que a conexão WiFi foi estabelecida */
-            Serial.println( WiFi.localIP() );
+            if ( DEBUG ){
+                Serial.printf( "WiFi: ESP32 conectou-se ao AP e recebeu o IP: " );
+                Serial.println( WiFi.localIP() );
+            }
+            xEventGroupSetBits( gWiFi_appl_event_group, WIFI_STA_CONNECTED_BIT ); /* Sinalizar, ou informar, por meio deste event group que o ESP32 estabeleceu conecxão com o AP da rede WiFi configurada */
             nAttempts = 0;
-            Serial.println("ESP32 conectou-se a um AP e recebeu um IP");
             break;
         }
         /* Evento disparado quando o ESP perde a conexão com a rede WiFi ou quando a tentativa de conexão não ocorrer */
         case SYSTEM_EVENT_STA_DISCONNECTED:{
-            //xEventGroupClearBits( *event_group, WIFI_CONNECTED_BIT ); /* Reseta o bit do event group que sinaliza o status da conexão WiFi */
-            //Serial.println((char*)event->event_info.disconnected.ssid); /* Checar a estrutura que contém a causa da falha de conexão */
-            //Serial.println(event->event_info.disconnected.ssid_len); /* Checar a estrutura que contém a causa da falha de conexão */
-            //Serial.println(event->event_info.disconnected.reason); /* Checar a estrutura que contém a causa da falha de conexão */
+            xEventGroupClearBits( gWiFi_appl_event_group, WIFI_STA_CONNECTED_BIT );   /* Sinalizar, ou informar, por meio deste event group que o ESP32 perdeu a conexão com o AP da rede WiFi configurada */
             if(nAttempts < 3){
+                Serial.println("WiFi: ESP32 realizará nova tentativa de conexão com o AP");
                 wifi_init_sta();
                 nAttempts++;
-                Serial.println("ESP32 realizou nova tentativa de conexão com o AP");
             } else{
-                Serial.println("Não foi possivel conectar-se a esta rede");
+                Serial.println("WiFi: ESP32 não conseguiu conectar-se ao AP configurado");
                 wifi_init_ap();   /* Configuração do driver WiFi para o modo AP, a fim de configurar o ESP para tentar conectar em outra rede WiFi */
                 nAttempts = 0;
             }
@@ -86,25 +69,22 @@ void wifi_event_handler( WiFiEvent_t event, WiFiEventInfo_t info )
         }
         /* Evento disparado quando o stack tcp for inicializado */
         case SYSTEM_EVENT_AP_START:{
-            Serial.println("ESP32 iniciou o modo AP");
             if ( DEBUG )
-                ESP_LOGI( "Wifi", "ESP32 Inicializado em modo Acess Point.\n" );
+                Serial.println("WiFi: ESP32 iniciou o driver WiFi no modo AP");
             xTaskCreatePinnedToCore( wifi_manager, "wifi_manager", 2048*4, NULL, 1, NULL, 1 );
             break;
         }
         /* Evento disparado quando algum dispositivo no modo Station conectar-se ao AP do ESP32 */
         case SYSTEM_EVENT_AP_STACONNECTED:{
-            Serial.println("Dispositivo STA conectou-se ao AP do ESP32");
             if( DEBUG )
-                ESP_LOGI( "Wifi", "Dispositivo conectado ao WiFi AP.\n" );
+                Serial.println("WiFi: Dispositivo STA conectou-se ao AP do ESP32");
             //xEventGroupSetBits( *event_group, WIFI_CONNECTED_BIT );   /* Se chegou aqui significa que o Wifi do ESP foi inicializado corretamente no modo AP. Então, sinaliza por meio do event group */
             break;
         }
         /* Evento disparado quando algum dispositivo no modo Station desconectar-se do AP do ESP32 */
         case SYSTEM_EVENT_AP_STADISCONNECTED:{
-            Serial.println("Dispositivo Station desconectou-se do AP do ESP32");
-            if( DEBUG )
-                ESP_LOGI( "Wifi", "Dispositivo conectado ao WiFi AP.\n" );    
+            if( DEBUG ) 
+                Serial.println("WiFi: Dispositivo STA desconectou-se do AP do ESP32"); 
             //xEventGroupClearBits( *event_group, WIFI_CONNECTED_BIT );   /* Sinaliza, ou informa, por meio do event group que um cliente foi desconectado do AP do ESP*/
             break;
         }

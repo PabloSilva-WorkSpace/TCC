@@ -6,6 +6,7 @@
  * 1) Alocação de slots - Dinamica ou Estatica
  * 2) Gravar e ler dados na NVS
  * 3) Comunicação MQTT
+ * 4) Embarcar arquivo de binário (Embedding Binary Data) ou Embarcar arquivo de dados (Embedding Data File)
 *********************************************************************************************************************************************************************************************************************************************************/
 
 
@@ -19,7 +20,6 @@
     ### Global Variables into this scope (this file *.c) 
 *********************************************************************************************************************************************************************************************************************************************************/
 MainData_t mainData;  /* Main Data of Module */
-const int WIFI_CONNECTED_BIT = BIT0;
 
 
 /********************************************************************************************************************************************************************************************************************************************************
@@ -28,20 +28,22 @@ const int WIFI_CONNECTED_BIT = BIT0;
 *********************************************************************************************************************************************************************************************************************************************************/
 void setup()
 {
+  mainData.wifi.callback = &wifi_event_handler;      /* Definição da função de callback que trata dos eventos da rede WiFi. */
+  
   Config_configGPIO();
   Config_configUART();
-  mainData.wifi.callback = &wifi_event_handler;      /* Definição da função de callback que trata dos eventos da rede WiFi. */
-  mainData.wifi.event_group = xEventGroupCreate();   /* Criação de um eventgroup para sinalização do status da rede WiFi. */
   Config_configWIFI(mainData.wifi.callback, &mainData.wifi.event_group);
-  vTaskDelay(2000/portTICK_PERIOD_MS);
+  
+  //vTaskDelay(2000/portTICK_PERIOD_MS);
 
-  //xEventGroupWaitBits( mainData.wifi.event_group, WIFI_CONNECTED_BIT, false, true, portMAX_DELAY );
+  xEventGroupWaitBits( gWiFi_appl_event_group, WIFI_STA_CONNECTED_BIT, false, true, portMAX_DELAY );    /* Aguarda o ESP32 conectar-se a uma rede WiFi */
   
   /* Create Schedule Table */
   Comm_appl_Create_Schedule_Table(  &mainData.uart.scheduleTable );
   /* Tasks create */
-  xTaskCreatePinnedToCore(TaskFSRM, "TaskFSRM", 2048*3, NULL, 2, NULL, 0);
-  xTaskCreatePinnedToCore(TaskUART_TX, "TaskUART_TX", 2048*1, NULL, 3, NULL, 0);
+  xTaskCreatePinnedToCore(Task_Comm_appl, "Task_Comm_appl", 16384, NULL, 2, NULL, 0);
+  xTaskCreatePinnedToCore(TaskUART_TX, "TaskUART_TX", 16384, NULL, 3, NULL, 0);
+  xTaskCreatePinnedToCore(Task_MQTT_appl, "Task_MQTT_appl", 16384, NULL, 1, NULL, 1);
 }
 
 
@@ -57,9 +59,9 @@ void loop()
 
 /********************************************************************************************************************************************************************************************************************************************************
   Task FSRM
-  @Brief: Task responsável por processar as máquinas de estado de transmissão (Tx) e recepção (Rx) de frames.
+  @Brief: Task responsável por processar as máquinas de estado de transmissão (Tx) de frames, recepção (Rx) de frames e manipulação de resposta.
 *********************************************************************************************************************************************************************************************************************************************************/
-void TaskFSRM(void* Parameters)
+void Task_Comm_appl(void* Parameters)
 {
   for(;;){
     Comm_appl_FSM(&mainData.uart);
@@ -84,6 +86,18 @@ void TaskUART_TX(void* Parameters)
 }
 
 
+/********************************************************************************************************************************************************************************************************************************************************
+  Task UART TX
+  @Brief: Task responsável por alterar o estado da máquina de transmissão (Tx), com o propósito da UART transmitir frames.
+*********************************************************************************************************************************************************************************************************************************************************/
+void Task_MQTT_appl(void* Parameters)
+{
+  for(;;){
+    
+    vTaskDelay(500/portTICK_PERIOD_MS);
+  }
+}
+
 
 
 /*
@@ -92,5 +106,13 @@ Posts Relevantes / Bibliografia
 https://techtutorialsx.com/2019/08/15/esp32-arduino-getting-wifi-event-information/
 Tutorial que ensina a manipular usar as informações de eventos do wifi do ESP32
 
+https://www.dobitaobyte.com.br/esp32-com-mqtt-servidor-web-e-sistema-de-arquivos/
+Tutorial que ensina a configurar e usar o ESP32 como cliente MQTT
+
+https://techtutorialsx.com/2017/04/24/esp32-publishing-messages-to-mqtt-topic/
+Tutorial que ensina a configurar e usar o ESP32 como cliente MQTT
+
+https://iotdesignpro.com/projects/how-to-connect-esp32-mqtt-broker
+Tutorial que ensina a configurar e usar o ESP32 como cliente MQTT
 
 */

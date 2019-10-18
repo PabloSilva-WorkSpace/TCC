@@ -37,8 +37,10 @@ void Config_configUART()
 {
     /* Setting UART0 - Used to debug */
     Serial.begin(19200);
-    Serial.printf("\nSDK version using ESP object: %s", ESP.getSdkVersion()); /* Using ESP object */
-    Serial.printf("\nSDK version using low level function: %s", esp_get_idf_version()); /* Using low level function */  
+    if( DEBUG ){
+        Serial.printf("SDK version using ESP object: %s\n", ESP.getSdkVersion()); /* Using ESP object */
+        Serial.printf("SDK version using low level function: %s\n", esp_get_idf_version()); /* Using low level function */
+    } 
     /* Setting UART2 - Used to serial communication whith slaves modules */
     Serial2.begin(19200);
     uart_set_line_inverse(UART_ID, UART_INVERSE_TXD);  /* Invert level of Tx line */
@@ -51,6 +53,7 @@ void Config_configUART()
 *********************************************************************************************************************************************************************************************************************************************************/
 void Config_configWIFI(void (*fCallback)(WiFiEvent_t, WiFiEventInfo_t info), EventGroupHandle_t * event_group)
 {
+    //WiFi.onEvent(fCallback);
     WiFi.onEvent(fCallback);
     wifi_init_sta();
 }
