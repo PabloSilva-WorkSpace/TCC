@@ -101,6 +101,8 @@ void Comm_appl_Request_ChangeOf_FRM_State( Uart_t *, FRM_States_t );
 byte Comm_appl_RHM( Uart_t * );  /* RHM = Response Handling Machine (Máquina de Tratamento de Resposta) */
 void Comm_appl_Request_ChangeOf_RHM_State( Uart_t *, RHM_States_t );
 
+void Comm_appl_Init_Slave(Uart_t *, byte, byte);
+
 void Comm_appl_Set_Frame_Header( Frame_t *, byte, byte, byte, byte, byte, byte, byte );
 void Comm_appl_Set_Frame_Data( Frame_t *, byte *, int );
 void Comm_appl_Set_Frame_Checksum( Frame_t * );

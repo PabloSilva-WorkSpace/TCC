@@ -17,9 +17,10 @@
 *********************************************************************************************************************************************************************************************************************************************************/
 /* Tabela de todas as mensagens de resposta disponíveis do Slaves para o ESP. Formatação da tabela: {{SID,TYPE}, byte, callback function} */
 static const Kostia_CmdTable_t CmdTable_FromSlaveToMaster[] = {
-    {{0x01U, 0x02U}, 0x01U, Comm_appl_QueryID_Callback},         /* Response to command: Query if slave is configured */
-    {{0x02U, 0x02U}, 0x01U, Comm_appl_SetID_Callback},           /* Response to command: Set ID to slave */
-//    {{0x03U, 0x01U}, 0x01U, Comm_appl_RequestData_Callback},   /* Response to command: Request slave's data */
+    {{0x01U, 0x00U}, 0x01U, Comm_appl_QueryID_Callback},         /* Response to command: Query if slave is configured */
+    {{0x02U, 0x00U}, 0x01U, Comm_appl_SetID_Callback},           /* Response to command: Set ID to slave */
+//  {{0x03U, 0x00U}, 0x01U, Comm_appl_RequestData_Callback},     /* Response to command: Request slave's data */
+//  {{0x04U, 0x00U}, 0x01U, Comm_appl_ConfigSlave_Callback},     /* Response to command: Config slave */
     {{0x00U, 0x00U}, 0x00U, Comm_appl_CmdTableError}  /* Response to command: Must be the last element */
 };
 
@@ -114,6 +115,7 @@ byte Comm_appl_FRM( Uart_t *pUart )
                     Comm_appl_Request_ChangeOf_FRM_State(pUart, FRM_State_Error);
                 }
             }else{
+                Comm_appl_Request_ChangeOf_RHM_State(pUart, RHM_State_RxUart_Notify_Echo);
                 Comm_appl_Request_ChangeOf_FRM_State(pUart, FRM_State_Idle);
             }
             break;
@@ -140,6 +142,7 @@ byte Comm_appl_FRM( Uart_t *pUart )
 *********************************************************************************************************************************************************************************************************************************************************/
 byte Comm_appl_RHM(Uart_t *pUart)
 {
+    static int nAttempt = 0;
     switch (pUart->RHM_State){
         case RHM_State_Idle:
         {
@@ -147,21 +150,44 @@ byte Comm_appl_RHM(Uart_t *pUart)
         }
         case RHM_State_TxUart_Send_Request:
         {
-            pUart->scheduleTable.pSlot = pUart->scheduleTable.pSlot->nextSlot;
+            //pUart->scheduleTable.pSlot = pUart->scheduleTable.pSlot->nextSlot;                                                                                    /* Teste_1: deletar slot que não responder 3x */
+            
+            if( (pUart->scheduleTable.pLastSlotSent != pUart->scheduleTable.pFirstSlot) && (pUart->scheduleTable.pLastSlotSent == pUart->scheduleTable.pSlot) ){    /* Teste_1: deletar slot que não responder 3x */
+                nAttempt++;                                                                                                                                         /* Teste_1: deletar slot que não responder 3x */
+                if(nAttempt >= 4){                                                                                                                                  /* Teste_1: deletar slot que não responder 3x */
+                    Comm_appl_Delete_Slot( &pUart->scheduleTable );                                                                                                 /* Teste_1: deletar slot que não responder 3x */
+                    nAttempt = 0;                                                                                                                                   /* Teste_1: deletar slot que não responder 3x */
+                }                                                                                                                                                   /* Teste_1: deletar slot que não responder 3x */
+            }                                                                                                                                                       /* Teste_1: deletar slot que não responder 3x */
+                        
             Comm_appl_Request_ChangeOf_FSM_State(pUart, FSM_State_Send);
             Comm_appl_Request_ChangeOf_RHM_State(pUart, RHM_State_Idle);
+            
+            pUart->scheduleTable.pLastSlotSent = pUart->scheduleTable.pSlot;                                                                                         /* Teste_1: deletar slot que não responder 3x */
+
             break;
         }
         case RHM_State_RxUart_Notify_Response:
         {
+            pUart->scheduleTable.pSlot = pUart->scheduleTable.pSlot->nextSlot;
             Comm_appl_Request_ChangeOf_RHM_State(pUart, RHM_State_Process);
             break;
         }
+        case RHM_State_RxUart_Notify_Echo:                                                                                                                           /* Teste_1: deletar slot que não responder 3x */
+        {                                                                                                                                                            /* Teste_1: deletar slot que não responder 3x */
+            if( pUart->scheduleTable.pSlot == pUart->scheduleTable.pFirstSlot){                                                                                           /* Teste_1: deletar slot que não responder 3x */
+                pUart->scheduleTable.pSlot = pUart->scheduleTable.pSlot->nextSlot;                                                                                   /* Teste_1: deletar slot que não responder 3x */
+            }                                                                                                                                                        /* Teste_1: deletar slot que não responder 3x */
+            Comm_appl_Request_ChangeOf_RHM_State(pUart, RHM_State_Idle);                                                                                             /* Teste_1: deletar slot que não responder 3x */
+            break;                                                                                                                                                   /* Teste_1: deletar slot que não responder 3x */
+        }                                                                                                                                                            /* Teste_1: deletar slot que não responder 3x */
         case RHM_State_Process:
         {
             if(Comm_appl_FindCommand(&pUart->RxBuffer[_SID], pUart) == KOSTIA_OK){
-                Comm_appl_Request_ChangeOf_RHM_State(pUart, RHM_State_Idle);
-            }     
+                pUart->RHM_State = RHM_State_Idle;
+            }else{
+                pUart->RHM_State = RHM_State_Idle;
+            }
             break;
         }
         default:
@@ -199,7 +225,9 @@ void Comm_appl_Request_ChangeOf_FRM_State( Uart_t *pUart, FRM_States_t nextState
 *********************************************************************************************************************************************************************************************************************************************************/
 void Comm_appl_Request_ChangeOf_RHM_State( Uart_t *pUart, RHM_States_t nextState )
 {
-    pUart->RHM_State = nextState;
+    if(pUart->RHM_State != RHM_State_Process){
+        pUart->RHM_State = nextState;
+    }
 }
 
 
@@ -308,9 +336,16 @@ void Comm_appl_Create_Schedule_Table(ScheduleTable_t * pScheduleTable)
 {
     byte Data[] = {}; //byte (*Data)[] = {0xA9, 0x1C, 0x47};
     byte ID_Master = 0x01;
-    pScheduleTable->pSlot = (Slot_t *) malloc( sizeof(Slot_t *) );  /* Alocação dinamica de memória para armazenar uma "struct Slot" */
+    int i, j;
+    /* Inicialização do array de slots usados na schedule table */
+    for(i = 0; i < _SCHEDULE_TABLE_MAX_SIZE; i++ ){
+        Comm_appl_Reset_Slot(&pScheduleTable->slot[i]);
+    }
+    /* Organização dos ponteiros que controlam a schedule table () */
+    pScheduleTable->pSlot = &pScheduleTable->slot[0];  
     pScheduleTable->pFirstSlot = pScheduleTable->pSlot;
     pScheduleTable->pLastSlot = pScheduleTable->pSlot;
+    pScheduleTable->pLastSlotSent = pScheduleTable->pFirstSlot;    /* Teste_1: deletar slot que não responder 3x */
     pScheduleTable->pSlot->nextSlot = pScheduleTable->pSlot;
     pScheduleTable->Length = 1;
     /* Configuração inicial do primeiro slot (slot para mensagens de configuração dos slaves) */
@@ -351,14 +386,62 @@ byte Comm_appl_Define_Slave_ID( ScheduleTable_t * pScheduleTable )
 *********************************************************************************************************************************************************************************************************************************************************/
 void Comm_appl_Insert_Slot( ScheduleTable_t * pScheduleTable )
 {
+    int i;
     Slot_t *pNewSlot;
+    for(i = 0; i < _SCHEDULE_TABLE_MAX_SIZE; i++ ){
+        if(pScheduleTable->slot[i].frame.Synch == 0x00){
+            pNewSlot = &pScheduleTable->slot[i];
+            pNewSlot->nextSlot = pScheduleTable->pFirstSlot;
+            pScheduleTable->pSlot = pScheduleTable->pLastSlot;
+            pScheduleTable->pSlot->nextSlot = pNewSlot;
+            pScheduleTable->pLastSlot = pNewSlot;
+            pScheduleTable->Length++;
+            break;
+        }
+    }
+}
+
+
+/********************************************************************************************************************************************************************************************************************************************************
+    Descrição: Insere um novo elemento na lista lgada, ou um novo slot na tabela de agendamento. 
     
-    pNewSlot = (Slot_t *) malloc( sizeof(Slot_t *) );  //Alocação dinamica de memória para armazenar uma "struct Slot"
-    pNewSlot->nextSlot = pScheduleTable->pFirstSlot;
-    pScheduleTable->pSlot = pScheduleTable->pLastSlot;
-    pScheduleTable->pSlot->nextSlot = pNewSlot;
-    pScheduleTable->pLastSlot = pNewSlot;
-    pScheduleTable->Length++;
+    \Parameters: (Slot_t *pCurrentSlot) - Ponteiro para uma estrutura Slot_t
+    
+    \Return value: (void)
+*********************************************************************************************************************************************************************************************************************************************************/
+void Comm_appl_Delete_Slot( ScheduleTable_t * pScheduleTable )
+{
+    int i;
+    static Slot_t * pSlotAux;
+    pSlotAux = pScheduleTable->pSlot;
+    for(i = 0; i < pScheduleTable->Length - 1; i++){
+        pScheduleTable->pSlot = pScheduleTable->pSlot->nextSlot;
+    }
+    if(pScheduleTable->pLastSlot == pScheduleTable->pSlot->nextSlot){
+        pScheduleTable->pLastSlot = pScheduleTable->pSlot;
+    }
+    pScheduleTable->pSlot->nextSlot = pSlotAux->nextSlot;
+    Comm_appl_Reset_Slot(pSlotAux);
+    /* Posicionar o pSlot no primeiro slot depois de deletar algum slot */
+    pScheduleTable->pSlot = pScheduleTable->pFirstSlot;
+}
+
+
+/********************************************************************************************************************************************************************************************************************************************************
+    Descrição: Limpa todos os campos do slot passado como parâmetro.
+    
+    \Parameters: (void)
+    
+    \Return value: (Slot_t *) - Retorno de um ponteiro para o primeiro elemento da Lista Ligada, ou primeiro slot da tabela de agendamento. 
+*********************************************************************************************************************************************************************************************************************************************************/
+void Comm_appl_Reset_Slot(Slot_t *pSlot)
+{
+    int i;
+    Comm_appl_Set_Frame_Header(&pSlot->frame, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
+    for(i = 0; i < _FRAME_MAX_DATA_SIZE; i++){
+        pSlot->frame.Data[i] = 0x00;
+    }
+    pSlot->frame.Break = 0x00;
 }
 
 
@@ -394,11 +477,9 @@ static Kostia_Rsp_t Comm_appl_FindCommand(byte *pAddr, Uart_t *pUart)
 
     u08CounterCmd = 0;
     lData[0] = *(pAddr+0);
-    lData[1] = *(pAddr+1);
 
     while (CmdTable_FromSlaveToMaster[u08CounterCmd].au08Command[0] != 0){
-        if((lData[0] == CmdTable_FromSlaveToMaster[u08CounterCmd].au08Command[0]) && 
-           (lData[1] == CmdTable_FromSlaveToMaster[u08CounterCmd].au08Command[1])){
+        if(lData[0] == CmdTable_FromSlaveToMaster[u08CounterCmd].au08Command[0]){
                eRsp = CmdTable_FromSlaveToMaster[u08CounterCmd].pfExecute(pAddr, pUart); /* Chamada da função que manipula um frame de resposta para o comando recebido */
                if(eRsp == KOSTIA_OK){
                    //Comm_appl_Request_ChangeOf_FSM_State(pUart, FSM_State_Send);
@@ -425,9 +506,8 @@ static Kostia_Rsp_t Comm_appl_FindCommand(byte *pAddr, Uart_t *pUart)
 *********************************************************************************************************************************************************************************************************************************************************/
 static Kostia_Rsp_t Comm_appl_QueryID_Callback(byte *pCmd, Uart_t *pUart)
 {
-    Serial.println("Query ID");
-    if(pUart->scheduleTable.pFirstSlot->frame.Id_Source == 0x01){      
-        Serial.println("True");
+    Serial.println("Query ID callback");
+    if(pUart->scheduleTable.pFirstSlot->frame.Id_Source == 0x01 && pUart->scheduleTable.Length < _SCHEDULE_TABLE_MAX_SIZE){      
         pUart->scheduleTable.pFirstSlot->frame.Break = 0x00;                                                              /* Break signal */
         pUart->scheduleTable.pFirstSlot->frame.Synch = 0x55;                                                              /* Synch signal */
         pUart->scheduleTable.pFirstSlot->frame.SID = 0x02;                                                                /* Identificador de serviço da mensagem */
@@ -437,7 +517,11 @@ static Kostia_Rsp_t Comm_appl_QueryID_Callback(byte *pCmd, Uart_t *pUart)
         pUart->scheduleTable.pFirstSlot->frame.Lenght = 0x01;                                                             /* Comprimento da mensagem */
         pUart->scheduleTable.pFirstSlot->frame.Checksum = 0x00;                                                           /* Checksum */
         /* Put pSlot in last slot */
-        pUart->scheduleTable.pSlot = pUart->scheduleTable.pLastSlot;
+        //pUart->scheduleTable.pSlot = pUart->scheduleTable.pLastSlot;  /* Teste_1: deletar slot que não responder 3x */
+        pUart->scheduleTable.pSlot = pUart->scheduleTable.pFirstSlot;   /* Teste_1: deletar slot que não responder 3x */
+        return KOSTIA_OK;
+    }else if(pUart->scheduleTable.Length == _SCHEDULE_TABLE_MAX_SIZE){
+        Serial.println("Overflow on schedule table ");
         return KOSTIA_OK;
     }else{
         return KOSTIA_NOK;
@@ -456,9 +540,8 @@ static Kostia_Rsp_t Comm_appl_QueryID_Callback(byte *pCmd, Uart_t *pUart)
 *********************************************************************************************************************************************************************************************************************************************************/
 static Kostia_Rsp_t Comm_appl_SetID_Callback(byte *pCmd, Uart_t *pUart)
 {
-    Serial.println("Set ID");
+    Serial.println("Set ID callback");
     if(pUart->scheduleTable.pFirstSlot->frame.Id_Source == 0x01){
-        Serial.println("True");
         pUart->scheduleTable.pFirstSlot->frame.Break = 0x00;                /* Break signal */
         pUart->scheduleTable.pFirstSlot->frame.Synch = 0x55;                /* Synch signal */
         pUart->scheduleTable.pFirstSlot->frame.SID = 0x01;                  /* Identificador de serviço da mensagem */
@@ -473,7 +556,8 @@ static Kostia_Rsp_t Comm_appl_SetID_Callback(byte *pCmd, Uart_t *pUart)
         Comm_appl_Set_Frame_Header(&pUart->scheduleTable.pLastSlot->frame, 0x00, 0x55, 0x03, 0x01, 0x01, pUart->RxBuffer[_ID_SRC], 0x01);
         Comm_appl_Set_Frame_Checksum(&pUart->scheduleTable.pLastSlot->frame);
         /* Put pSlot in last slot */
-        pUart->scheduleTable.pSlot = pUart->scheduleTable.pLastSlot;
+        //pUart->scheduleTable.pSlot = pUart->scheduleTable.pLastSlot;  /* Teste_1: deletar slot que não responder 3x */
+        pUart->scheduleTable.pSlot = pUart->scheduleTable.pFirstSlot;   /* Teste_1: deletar slot que não responder 3x */
         return KOSTIA_OK;
     }else{
         return KOSTIA_NOK;
@@ -492,7 +576,7 @@ static Kostia_Rsp_t Comm_appl_SetID_Callback(byte *pCmd, Uart_t *pUart)
 *********************************************************************************************************************************************************************************************************************************************************/
 static Kostia_Rsp_t Comm_appl_RequestData_Callback(byte *pCmd, Uart_t *pUart)
 {
-    /* Ler entrada os pinos de entrada para pegar os valores do sensor e controlar a saída. Depende do módulo. */
+    /* Chamar as funções que irão manipular essas respostas. Chamar as funções baseadas nos tipo de slave que respondeu */
     return KOSTIA_NOK;
 }
 

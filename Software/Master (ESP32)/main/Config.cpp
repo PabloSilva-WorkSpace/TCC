@@ -15,8 +15,8 @@
 /********************************************************************************************************************************************************************************************************************************************************
     ### Global Variables into this scope (this file *.c) 
 *********************************************************************************************************************************************************************************************************************************************************/
-static char wifi_STA_SSID[SSID_SIZE] = "AndroidAP7F6B";
-static char wifi_STA_PASSWORD[PASSWORD_SIZE] = "fark2662";
+static char wifi_STA_SSID[SSID_SIZE] = "pablo";
+static char wifi_STA_PASSWORD[PASSWORD_SIZE] = "JesusMeuSenhor030515";
 static const char * wifi_AP_SSID = "Aquarium";
 static const char * wifi_AP_PASSWORD = "Aquarium"; 
 
@@ -53,7 +53,6 @@ void Config_configUART()
 *********************************************************************************************************************************************************************************************************************************************************/
 void Config_configWIFI(void (*fCallback)(WiFiEvent_t, WiFiEventInfo_t info), EventGroupHandle_t * event_group)
 {
-    //WiFi.onEvent(fCallback);
     WiFi.onEvent(fCallback);
     wifi_init_sta();
 }
@@ -65,6 +64,7 @@ void Config_configWIFI(void (*fCallback)(WiFiEvent_t, WiFiEventInfo_t info), Eve
 void wifi_init_sta( void )
 {
     WiFi.disconnect();
+    delay(500);
     WiFi.begin(wifi_STA_SSID, wifi_STA_PASSWORD);
 }
 
@@ -76,5 +76,6 @@ void wifi_init_ap( void )
 {
     Serial.println("Inicializando Modo AP");
     WiFi.disconnect();
+    delay(500);
     WiFi.softAP(wifi_AP_SSID, wifi_AP_PASSWORD);
 }

@@ -21,29 +21,31 @@
 *********************************************************************************************************************************************************************************************************************************************************/
 MainData_t mainData;  /* Main Data of Module */
 
-
 /********************************************************************************************************************************************************************************************************************************************************
     Setup function
     Description: It configure hardware and initialize variables.
 *********************************************************************************************************************************************************************************************************************************************************/
 void setup()
 {
-  mainData.wifi.callback = &wifi_event_handler;      /* Definição da função de callback que trata dos eventos da rede WiFi. */
-  
-  Config_configGPIO();
-  Config_configUART();
-  Config_configWIFI(mainData.wifi.callback, &mainData.wifi.event_group);
-  
-  //vTaskDelay(2000/portTICK_PERIOD_MS);
+    mainData.wifi.callback = &wifi_event_handler;      /* Definição da função de callback que trata dos eventos da rede WiFi. */
+    
+    Config_configGPIO();
+    Config_configUART();
+    Config_configWIFI(mainData.wifi.callback, &mainData.wifi.event_group);
 
-  xEventGroupWaitBits( gWiFi_appl_event_group, WIFI_STA_CONNECTED_BIT, false, true, portMAX_DELAY );    /* Aguarda o ESP32 conectar-se a uma rede WiFi */
-  
-  /* Create Schedule Table */
-  Comm_appl_Create_Schedule_Table(  &mainData.uart.scheduleTable );
-  /* Tasks create */
-  xTaskCreatePinnedToCore(Task_Comm_appl, "Task_Comm_appl", 16384, NULL, 2, NULL, 0);
-  xTaskCreatePinnedToCore(TaskUART_TX, "TaskUART_TX", 16384, NULL, 3, NULL, 0);
-  xTaskCreatePinnedToCore(Task_MQTT_appl, "Task_MQTT_appl", 16384, NULL, 1, NULL, 1);
+    vTaskDelay(2000/portTICK_PERIOD_MS);
+    xEventGroupWaitBits( gWiFi_appl_event_group, WIFI_STA_CONNECTED_BIT, false, true, portMAX_DELAY );    /* Aguarda o ESP32 conectar-se a uma rede WiFi */
+
+    /* Create Schedule Table */
+    Comm_appl_Create_Schedule_Table(  &mainData.uart.scheduleTable );
+    vTaskDelay(2000/portTICK_PERIOD_MS);
+    /* Iniciar a aplicação/serviço MQTT Client no ESP32 */
+    MQTT_appl_Start_MQTT_Client();
+    vTaskDelay(2000/portTICK_PERIOD_MS);
+    /* Tasks create */
+    xTaskCreatePinnedToCore(Task_Comm_appl, "Task_Comm_appl", 16384, NULL, 2, NULL, 0);
+    xTaskCreatePinnedToCore(TaskUART_TX, "TaskUART_TX", 16384, NULL, 3, NULL, 0);
+    xTaskCreatePinnedToCore(Task_MQTT_appl, "Task_MQTT_appl", 16384, NULL, 1, NULL, 1);
 }
 
 
@@ -53,7 +55,7 @@ void setup()
 *********************************************************************************************************************************************************************************************************************************************************/
 void loop()
 {
-  vTaskDelay(1000/portTICK_PERIOD_MS);
+    vTaskDelay(1000/portTICK_PERIOD_MS);
 }
 
 
@@ -63,12 +65,12 @@ void loop()
 *********************************************************************************************************************************************************************************************************************************************************/
 void Task_Comm_appl(void* Parameters)
 {
-  for(;;){
-    Comm_appl_FSM(&mainData.uart);
-    Comm_appl_FRM(&mainData.uart);
-    Comm_appl_RHM(&mainData.uart);
-    vTaskDelay(10/portTICK_PERIOD_MS);
-  }
+    for(;;){
+      Comm_appl_FSM(&mainData.uart);
+      Comm_appl_FRM(&mainData.uart);
+      Comm_appl_RHM(&mainData.uart);
+      vTaskDelay(10/portTICK_PERIOD_MS);
+    }
 }
 
 
@@ -78,11 +80,11 @@ void Task_Comm_appl(void* Parameters)
 *********************************************************************************************************************************************************************************************************************************************************/
 void TaskUART_TX(void* Parameters)
 {
-  for(;;){
-    digitalWrite(LED_ON_BOARD, !digitalRead(LED_ON_BOARD));
-    Comm_appl_Request_ChangeOf_RHM_State(&mainData.uart, RHM_State_TxUart_Send_Request);
-    vTaskDelay(500/portTICK_PERIOD_MS);
-  }
+    for(;;){
+      digitalWrite(LED_ON_BOARD, !digitalRead(LED_ON_BOARD));
+      Comm_appl_Request_ChangeOf_RHM_State(&mainData.uart, RHM_State_TxUart_Send_Request);
+      vTaskDelay(500/portTICK_PERIOD_MS);
+    }
 }
 
 
@@ -92,10 +94,10 @@ void TaskUART_TX(void* Parameters)
 *********************************************************************************************************************************************************************************************************************************************************/
 void Task_MQTT_appl(void* Parameters)
 {
-  for(;;){
-    
-    vTaskDelay(500/portTICK_PERIOD_MS);
-  }
+    for(;;){
+      MQTT_appl_Send_Message();
+      vTaskDelay(5000/portTICK_PERIOD_MS);
+    }
 }
 
 
@@ -114,5 +116,8 @@ Tutorial que ensina a configurar e usar o ESP32 como cliente MQTT
 
 https://iotdesignpro.com/projects/how-to-connect-esp32-mqtt-broker
 Tutorial que ensina a configurar e usar o ESP32 como cliente MQTT
+
+https://pubsubclient.knolleary.net/api.html
+Tutorial que explica as funções da biblioteca PubSubClient, usada para a comunicação MQTT
 
 */

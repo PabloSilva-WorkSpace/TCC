@@ -49,7 +49,7 @@ extern EventGroupHandle_t gWiFi_appl_event_group;
     ### Constants
 *********************************************************************************************************************************************************************************************************************************************************/
 const int WIFI_STA_CONNECTED_BIT = BIT0;    /* Bit do event group usado para informar que o driver WiFi do ESP32 esta configurado como STA e estabeleceu conexão com o AP */
-const int WIFI_AP_CONNECTED_BIT = BIT1;    /* Bit do event group usado para informar que o driver WiFi do ESP32 esta configurado como STA e estabeleceu conexão com o AP */
+const int WIFI_AP_CONNECTED_BIT = BIT1;     /* Bit do event group usado para informar que o driver WiFi do ESP32 esta configurado como AP e esta preparado para conectar-se com STA */
 
 const static char http_html_hdr[] = "HTTP/1.1 200 OK\nContent-type: text/html\n\n";
 const char html_page[] PROGMEM = "<html>\n<head>\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" charset=\"UTF-8\">\n<style>\nbody {font-family: Arial;}\n"

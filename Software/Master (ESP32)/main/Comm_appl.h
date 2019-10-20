@@ -50,13 +50,16 @@ typedef enum {
     RHM_State_Idle = 0,
     RHM_State_TxUart_Send_Request = 1,
     RHM_State_RxUart_Notify_Response = 2,
-    RHM_State_Process = 3,
+    RHM_State_RxUart_Notify_Echo = 3,
+    RHM_State_Process = 4,
 }RHM_States_t;
 
 typedef struct {
+    Slot_t slot[_SCHEDULE_TABLE_MAX_SIZE];    /* Table of Slot_t */
     Slot_t * pSlot;                           /* Pointer to current slot */
     Slot_t * pFirstSlot;                      /* Pointer to first slot  - This slot is to config slaves */
     Slot_t * pLastSlot;                       /* Pointer to last slot */
+    Slot_t * pLastSlotSent;                   /* Pointer to last slot sended*/
     int Length;                               /* Quantity of slots */
 }ScheduleTable_t;
 
@@ -123,6 +126,8 @@ int Comm_appl_Check_Frame_IsValid( Uart_t * );
 void Comm_appl_Create_Schedule_Table( ScheduleTable_t * );
 void Comm_appl_Insert_Slot( ScheduleTable_t * );
 byte Comm_appl_Define_Slave_ID( ScheduleTable_t * );
+void Comm_appl_Delete_Slot( ScheduleTable_t * );
+void Comm_appl_Reset_Slot(Slot_t *);
 Slot_t *Comm_appl_Select_Next_Slot(Slot_t *);
 
 /* CMD  Table Functions */

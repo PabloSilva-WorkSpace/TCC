@@ -47,7 +47,7 @@ typedef struct {
   byte Type = 0x01;                  /* Tipo de módulo do transmissor */
   byte Id_Source = 0x01;             /* ID do módulo transmissor */
   byte Id_Target = 0xFF;             /* ID do módulo alvo */
-  byte Lenght = 0x11;                /* Comprimento da mensagem */
+  byte Lenght = 0x01;                /* Comprimento da mensagem */
   byte Data[_FRAME_MAX_DATA_SIZE];   /* Dados */
   byte Checksum = 0x00;              /* Checksum */
 }Frame_t;

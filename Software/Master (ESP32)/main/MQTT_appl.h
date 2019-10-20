@@ -40,6 +40,8 @@
     ### Functions Prototypes 
 *********************************************************************************************************************************************************************************************************************************************************/
 void MQTT_appl_Start_MQTT_Client( void );
+void MQTT_appl_Send_Message( void );
+void MQTT_fCallback(char* topic, byte* payload, unsigned int payloadLength);
 
 
 #endif

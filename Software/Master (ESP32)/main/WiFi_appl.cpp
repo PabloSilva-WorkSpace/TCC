@@ -78,14 +78,14 @@ void wifi_event_handler( WiFiEvent_t event, WiFiEventInfo_t info )
         case SYSTEM_EVENT_AP_STACONNECTED:{
             if( DEBUG )
                 Serial.println("WiFi: Dispositivo STA conectou-se ao AP do ESP32");
-            //xEventGroupSetBits( *event_group, WIFI_CONNECTED_BIT );   /* Se chegou aqui significa que o Wifi do ESP foi inicializado corretamente no modo AP. Então, sinaliza por meio do event group */
+            xEventGroupSetBits( gWiFi_appl_event_group, WIFI_AP_CONNECTED_BIT );   /* Se chegou aqui significa que o Wifi do ESP foi inicializado corretamente no modo AP. Então, sinaliza por meio do event group */
             break;
         }
         /* Evento disparado quando algum dispositivo no modo Station desconectar-se do AP do ESP32 */
         case SYSTEM_EVENT_AP_STADISCONNECTED:{
             if( DEBUG ) 
                 Serial.println("WiFi: Dispositivo STA desconectou-se do AP do ESP32"); 
-            //xEventGroupClearBits( *event_group, WIFI_CONNECTED_BIT );   /* Sinaliza, ou informa, por meio do event group que um cliente foi desconectado do AP do ESP*/
+            xEventGroupClearBits( gWiFi_appl_event_group, WIFI_AP_CONNECTED_BIT );   /* Sinaliza, ou informa, por meio do event group que um cliente foi desconectado do AP do ESP*/
             break;
         }
         /* Evento não previsto */

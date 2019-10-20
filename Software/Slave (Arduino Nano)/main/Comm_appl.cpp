@@ -20,6 +20,7 @@ static const Kostia_CmdTable_t CmdTable_FromMasterToSlave[] = {
     {{0x01U, 0x01U, 0x01U}, 0x01U, Comm_appl_QueryID},       /* Query if slave is configured */
     {{0x02U, 0x01U, 0x01U}, 0x01U, Comm_appl_SetID},         /* Set ID to slave */
     {{0x03U, 0x01U, 0x01U}, 0x01U, Comm_appl_RequestData},   /* Request slave's data */
+//  {{0x03U, 0x01U, 0x01U}, 0x01U, Comm_appl_RequestData},   /* Config slave command */
     {{0x00U, 0x00U, 0x00U}, 0x00U, Comm_appl_CmdTableError}  /* Must be the last element */
 };
 
@@ -103,8 +104,8 @@ byte Comm_appl_FRM(Uart_t *pUart)
         {
             int nDataRead;
             nDataRead = Comm_protocol_Frame_Read_Request(&pUart->RxBuffer, RxBuff_Length);
-            if(Comm_appl_Check_Frame_IsEcho(pUart) == 0){
-                if(Comm_appl_Check_Frame_IsValid(pUart) == 1){
+            if(Comm_appl_Check_Frame_IsEcho(pUart) == FALSE){
+                if(Comm_appl_Check_Frame_IsValid(pUart) == TRUE){
                     Comm_appl_Request_ChangeOf_FRM_State(pUart, FRM_State_Idle);
                     Comm_appl_Request_ChangeOf_RHM_State(pUart, RHM_State_Process);
                 }else{
@@ -120,7 +121,7 @@ byte Comm_appl_FRM(Uart_t *pUart)
             /* ToDo[PENS] error handler */
             Comm_appl_Request_ChangeOf_FRM_State(pUart, FRM_State_Idle);
             break;
-        } 
+        }
         default:
         {
             /* ToDo[PENS] - error handler to FSRM */
@@ -145,8 +146,11 @@ byte Comm_appl_RHM(Uart_t *pUart)
         case RHM_State_Process:
         {
             if(Comm_appl_FindCommand(&pUart->RxBuffer[_SID], pUart) == KOSTIA_OK){
-                Comm_appl_Request_ChangeOf_RHM_State(pUart, RHM_State_Idle);
-            }     
+                pUart->RHM_State = RHM_State_Idle;
+                Comm_appl_Request_ChangeOf_FSM_State(pUart, FSM_State_Send);
+            }else{
+                pUart->RHM_State = RHM_State_Idle;
+            }
             break;
         }
         default:
@@ -184,7 +188,36 @@ void Comm_appl_Request_ChangeOf_FRM_State(Uart_t *pUart, FRM_States_t nextState)
 *********************************************************************************************************************************************************************************************************************************************************/
 void Comm_appl_Request_ChangeOf_RHM_State(Uart_t *pUart, RHM_States_t nextState)
 {
-    pUart->RHM_State = nextState;
+    if(pUart->RHM_State != RHM_State_Process){
+        pUart->RHM_State = nextState;
+    }
+}
+
+
+/******************************************************************************************************************************************************************************************************************************************************** 
+    Função
+    Descrição: Esta função configura os campos do Frame Header
+*********************************************************************************************************************************************************************************************************************************************************/
+void Comm_appl_Init_Slave(Uart_t *pUart, byte Type , byte Data_size)
+{
+    int i;
+    /* Inicializar o Frame */
+    Comm_appl_Set_Frame_Header(&pUart->frame, 0x00, 0x55, 0x00, Type, 0x00, 0x01, Data_size + 1); /* Function signature:  Comm_appl_Set_Frame_Header(Frame_t *pFrame, byte Break, byte Synch, byte SID, byte Type, byte Id_Source, byte Id_Target, byte Lenght) */
+    for(i = 0; i < _FRAME_MAX_DATA_SIZE; i++){
+        pUart->frame.Data[i] = 0x00;
+    }
+    Comm_appl_Set_Frame_Checksum(&pUart->frame);
+    /* Inicializar os buffers que armazenam os dados TX e RX */
+    for(i = 0; i < _RX_BUFFER_SIZE; i++){
+        pUart->RxBuffer[i] = 0x00;
+    }
+    for(i = 0; i < _TX_BUFFER_SIZE; i++){
+        pUart->TxBuffer[i] = 0x00;
+    }
+    /* Inicializar as máquinas de estado da UART */
+    pUart->FSM_State = FSM_State_Idle;
+    pUart->FRM_State = FRM_State_Idle;
+    pUart->RHM_State = RHM_State_Idle;
 }
 
 
@@ -307,16 +340,11 @@ static Kostia_Rsp_t Comm_appl_FindCommand(byte *pAddr, Uart_t *pUart)
     lData[0] = *(pAddr+0);
     lData[1] = *(pAddr+1);
     lData[2] = *(pAddr+2);
-
+    
     while (CmdTable_FromMasterToSlave[u08CounterCmd].au08Command[0] != 0){
-        if((lData[0] == CmdTable_FromMasterToSlave[u08CounterCmd].au08Command[0]) && 
-           (lData[1] == CmdTable_FromMasterToSlave[u08CounterCmd].au08Command[1]) && 
-           (lData[2] == CmdTable_FromMasterToSlave[u08CounterCmd].au08Command[2])){
-               eRsp = CmdTable_FromMasterToSlave[u08CounterCmd].pfExecute(pAddr, pUart); /* Chamada da função que manipula um frame de resposta para o comando recebido */
-               if(eRsp == KOSTIA_OK){
-                   Comm_appl_Request_ChangeOf_FSM_State(pUart, FSM_State_Send);
-               }
-               break;
+        if((lData[0] == CmdTable_FromMasterToSlave[u08CounterCmd].au08Command[0]) && (lData[1] == CmdTable_FromMasterToSlave[u08CounterCmd].au08Command[1]) && (lData[2] == CmdTable_FromMasterToSlave[u08CounterCmd].au08Command[2])){
+            eRsp = CmdTable_FromMasterToSlave[u08CounterCmd].pfExecute(pAddr, pUart); /* Chamada da função que manipula um frame de resposta para o comando recebido */
+            break;
         }else{
             /* Command not find */
             eRsp = KOSTIA_ER_CMD_NOTFIND;
@@ -339,13 +367,7 @@ static Kostia_Rsp_t Comm_appl_FindCommand(byte *pAddr, Uart_t *pUart)
 static Kostia_Rsp_t Comm_appl_QueryID(byte *pCmd, Uart_t *pUart)
 {
     if(pUart->frame.Id_Source == 0x00){      
-        pUart->frame.Break = 0x00;                /* Break signal */
-        pUart->frame.Synch = 0x55;                /* Synch signal */
-        pUart->frame.SID = 0x01;                  /* Identificador de serviço da mensagem */
-        pUart->frame.Type = 0x02;                 /* Tipo de módulo transmissor */
-        pUart->frame.Id_Source = 0x00;            /* ID do módulo transmissor */
-        pUart->frame.Id_Target = 0x01;            /* ID do módulo alvo */
-        pUart->frame.Lenght = 0x01;               /* Comprimento da mensagem */
+        pUart->frame.SID = *pCmd;                 /* Identificador de serviço da mensagem */
         pUart->frame.Checksum = 0x00;             /* Checksum */
         return KOSTIA_OK;
     }else{
@@ -366,13 +388,8 @@ static Kostia_Rsp_t Comm_appl_QueryID(byte *pCmd, Uart_t *pUart)
 static Kostia_Rsp_t Comm_appl_SetID(byte *pCmd, Uart_t *pUart)
 {
     if(pUart->frame.Id_Source == 0x00){
-        pUart->frame.Break = 0x00;                                        /* Break signal */
-        pUart->frame.Synch = 0x55;                                        /* Synch signal */
         pUart->frame.SID = *pCmd;                                         /* Identificador de serviço da mensagem */
-        pUart->frame.Type = 0x02;                                         /* Tipo de módulo transmissor */
-        pUart->frame.Id_Source = pUart->RxBuffer[_ID_TRG];            /* ID do módulo transmissor */
-        pUart->frame.Id_Target = 0x01;                                    /* ID do módulo alvo */
-        pUart->frame.Lenght = 0x01;                                       /* Comprimento da mensagem */
+        pUart->frame.Id_Source = pUart->RxBuffer[_ID_TRG];                /* ID do módulo transmissor */
         pUart->frame.Checksum = 0x00;                                     /* Checksum */
         return KOSTIA_OK;
     }else{
@@ -392,8 +409,14 @@ static Kostia_Rsp_t Comm_appl_SetID(byte *pCmd, Uart_t *pUart)
 *********************************************************************************************************************************************************************************************************************************************************/
 static Kostia_Rsp_t Comm_appl_RequestData(byte *pCmd, Uart_t *pUart)
 {
-    /* Ler entrada os pinos de entrada para pegar os valores do sensor e controlar a saída. Depende do módulo. */
-    return KOSTIA_NOK;
+    if(pUart->RxBuffer[_ID_TRG] == pUart->frame.Id_Source){
+        pUart->frame.SID = *pCmd;                                         /* Identificador de serviço da mensagem */
+        pUart->frame.Checksum = 0x00;                                     /* Checksum */
+        /* Ler os pinos de entrada para pegar os valores do sensor e controlar a saída. Depende do módulo. */
+        return KOSTIA_OK;
+    }else{
+        return KOSTIA_NOK;
+    }
 }
 
 
