@@ -28,16 +28,9 @@
 #define FALSE (0)
 #define LED_ON_BOARD (13)
 #define USART_BAUDRATE (19200)
-/* Defines to plugs module */
-#ifdef _MODULE_TYPE_PLUGS
-    #define _CONFIG_MODULE_TYPE 0x02
-    #define _CONFIG_MODULE_DATA_SIZE 0x14
-#endif
-/* Defines to ligth module */
-#ifdef _MODULE_TYPE_LIGTH
-    #define _CONFIG_MODULE_TYPE 0x03 
-    #define _CONFIG_MODULE_DATA_SIZE 0x0E 
-#endif
+#define COMM_ENALE_IN (2)
+#define COMM_ENABLE_OUT (3)
+
 
 /******************************************************************************************************************************************************************************************************************************************************** 
     ### Data Types 

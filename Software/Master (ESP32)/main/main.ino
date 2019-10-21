@@ -13,13 +13,16 @@
 /********************************************************************************************************************************************************************************************************************************************************
     ### Headers includes 
 *********************************************************************************************************************************************************************************************************************************************************/
+#include "General_types.h"
 #include "main.h"
 
 
 /********************************************************************************************************************************************************************************************************************************************************
-    ### Global Variables into this scope (this file *.c) 
+    ### Extern Global Variables 
 *********************************************************************************************************************************************************************************************************************************************************/
-MainData_t mainData;  /* Main Data of Module */
+MainData_t mainData;                                               /* Main Data of Module */
+EventGroupHandle_t gWiFi_appl_event_group = xEventGroupCreate();   /* Criação de um eventgroup para sinalização do status da rede WiFi. */
+
 
 /********************************************************************************************************************************************************************************************************************************************************
     Setup function
@@ -35,7 +38,9 @@ void setup()
 
     vTaskDelay(2000/portTICK_PERIOD_MS);
     xEventGroupWaitBits( gWiFi_appl_event_group, WIFI_STA_CONNECTED_BIT, false, true, portMAX_DELAY );    /* Aguarda o ESP32 conectar-se a uma rede WiFi */
-
+    
+    xEventGroupSetBits( gWiFi_appl_event_group, UART_TX_ENABLE );  /* Sinalizar, ou informar, a RHM por meio deste event group que a UART esta habilitada para comunicar */
+    
     /* Create Schedule Table */
     Comm_appl_Create_Schedule_Table(  &mainData.uart.scheduleTable );
     vTaskDelay(2000/portTICK_PERIOD_MS);

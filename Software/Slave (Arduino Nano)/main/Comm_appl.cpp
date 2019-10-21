@@ -9,6 +9,7 @@
 /******************************************************************************************************************************************************************************************************************************************************** 
     ### Headers includes
 *********************************************************************************************************************************************************************************************************************************************************/
+#include "General_types.h"
 #include "Comm_appl.h"
 
 
@@ -19,8 +20,8 @@
 static const Kostia_CmdTable_t CmdTable_FromMasterToSlave[] = {
     {{0x01U, 0x01U, 0x01U}, 0x01U, Comm_appl_QueryID},       /* Query if slave is configured */
     {{0x02U, 0x01U, 0x01U}, 0x01U, Comm_appl_SetID},         /* Set ID to slave */
-    {{0x03U, 0x01U, 0x01U}, 0x01U, Comm_appl_RequestData},   /* Request slave's data */
-//  {{0x03U, 0x01U, 0x01U}, 0x01U, Comm_appl_RequestData},   /* Config slave command */
+    {{0x03U, 0x01U, 0x01U}, 0x01U, Comm_appl_ConfigSlave},   /* Config slave command */
+    {{0x04U, 0x01U, 0x01U}, 0x01U, Comm_appl_RequestData},   /* Request slave's data */
     {{0x00U, 0x00U, 0x00U}, 0x00U, Comm_appl_CmdTableError}  /* Must be the last element */
 };
 
@@ -198,7 +199,7 @@ void Comm_appl_Request_ChangeOf_RHM_State(Uart_t *pUart, RHM_States_t nextState)
     Função
     Descrição: Esta função configura os campos do Frame Header
 *********************************************************************************************************************************************************************************************************************************************************/
-void Comm_appl_Init_Slave(Uart_t *pUart, byte Type , byte Data_size)
+void Comm_appl_Init_Slave_Data(Uart_t *pUart, byte Type , byte Data_size)
 {
     int i;
     /* Inicializar o Frame */
@@ -418,6 +419,64 @@ static Kostia_Rsp_t Comm_appl_RequestData(byte *pCmd, Uart_t *pUart)
         return KOSTIA_NOK;
     }
 }
+
+
+/******************************************************************************************************************************************************************************************************************************************************** 
+    Função
+    
+    Description: Function to read teh HW
+    
+    \Parameters: u08 *pCmd - command received from Kostia Com
+    
+    \Return value: Kostia_TRsp
+*********************************************************************************************************************************************************************************************************************************************************/
+#ifdef _MODULE_TYPE_PLUGS
+static Kostia_Rsp_t Comm_appl_ConfigSlave(byte *pCmd, Uart_t *pUart)
+{
+    if(pUart->RxBuffer[_TYPE] == pUart->frame.Type && pUart->RxBuffer[_ID_TRG] == 0xFF){
+        /* Get setting to plug 1 */
+        module.plug_1.mode       = pUart->RxBuffer[_PLUG_MODE];
+        module.plug_1.sensor_ref = pUart->RxBuffer[_PLUG_SENSOR_REF];
+        module.plug_1.level_type = pUart->RxBuffer[_PLUG_LEVEL_TYPE];
+        module.plug_1.set_point  = pUart->RxBuffer[_PLUG_SET_POINT];
+        module.plug_1.potency    = pUart->RxBuffer[_PLUG_POTENCY];
+        /* Get setting to plug 2 */
+        module.plug_2.mode = pUart->RxBuffer[_PLUG_MODE + 5];
+        module.plug_2.sensor_ref = pUart->RxBuffer[_PLUG_SENSOR_REF + 5];
+        module.plug_2.level_type = pUart->RxBuffer[_PLUG_LEVEL_TYPE + 5];
+        module.plug_2.set_point  = pUart->RxBuffer[_PLUG_SET_POINT + 5];
+        module.plug_2.potency    = pUart->RxBuffer[_PLUG_POTENCY + 5];
+        /* Get setting to plug 3 */
+        module.plug_3.mode       = pUart->RxBuffer[_PLUG_MODE + 10];
+        module.plug_3.sensor_ref = pUart->RxBuffer[_PLUG_SENSOR_REF + 10];
+        module.plug_3.level_type = pUart->RxBuffer[_PLUG_LEVEL_TYPE + 10];
+        module.plug_3.set_point  = pUart->RxBuffer[_PLUG_SET_POINT + 10];
+        module.plug_3.potency    = pUart->RxBuffer[_PLUG_POTENCY + 10];
+        /* Get setting to plug 4 */
+        module.plug_4.mode       = pUart->RxBuffer[_PLUG_MODE + 15];
+        module.plug_4.sensor_ref = pUart->RxBuffer[_PLUG_SENSOR_REF + 15];
+        module.plug_4.level_type = pUart->RxBuffer[_PLUG_LEVEL_TYPE + 15];
+        module.plug_4.set_point  = pUart->RxBuffer[_PLUG_SET_POINT + 15];
+        module.plug_4.potency    = pUart->RxBuffer[_PLUG_POTENCY + 15];
+        return KOSTIA_OK;
+    }else{
+        return KOSTIA_NOK;
+    }
+}
+#endif
+
+
+#ifdef _MODULE_TYPE_LIGTH
+static Kostia_Rsp_t Comm_appl_ConfigSlave(byte *pCmd, Uart_t *pUart)
+{
+    if(pUart->RxBuffer[_TYPE] == pUart->frame.Type && pUart->RxBuffer[_ID_TRG] == pUart->frame.Id_Source){
+
+        return KOSTIA_OK;
+    }else{
+        return KOSTIA_NOK;
+    }
+}
+#endif
 
 
 /******************************************************************************************************************************************************************************************************************************************************** 

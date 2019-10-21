@@ -133,6 +133,7 @@ Slot_t *Comm_appl_Select_Next_Slot(Slot_t *);
 /* CMD  Table Functions */
 static Kostia_Rsp_t Comm_appl_QueryID_Callback (byte *pCmd, Uart_t *);
 static Kostia_Rsp_t Comm_appl_SetID_Callback (byte *pCmd, Uart_t *);
+static Kostia_Rsp_t Comm_appl_ConfigSlave_Callback (byte *pCmd, Uart_t *);
 static Kostia_Rsp_t Comm_appl_RequestData_Callback (byte *pCmd, Uart_t *);
 static Kostia_Rsp_t Comm_appl_CmdTableError(byte *pAddr, Uart_t *);
 static Kostia_Rsp_t Comm_appl_FindCommand(byte *pAddr, Uart_t *);

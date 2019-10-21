@@ -9,16 +9,41 @@
 /******************************************************************************************************************************************************************************************************************************************************** 
     ### Headers includes 
 *********************************************************************************************************************************************************************************************************************************************************/
+#include "General_types.h"
 #include "Config.h"
 
 
 /******************************************************************************************************************************************************************************************************************************************************** 
   @Brief: Setting GPIOs 
 *********************************************************************************************************************************************************************************************************************************************************/
+#ifdef _MODULE_TYPE_PLUGS
 void Config_configGPIO()
 {
-  pinMode(LED_ON_BOARD, OUTPUT);   /* GPIO 13 used to led blink */
+        pinMode(COMM_ENALE_IN, INPUT);          /* D2 board pin */
+        pinMode(COMM_ENABLE_OUT, OUTPUT);       /* D3 board pin */
+        pinMode(LED_ON_BOARD, OUTPUT);          /* GPIO 13 used to led blink */
+        pinMode(_STATE_CTRL_PLUG_1, OUTPUT);    /* D4 board pin */
+        pinMode(_STATE_CTRL_PLUG_2, OUTPUT);    /* D5 board pin */
+        pinMode(_STATE_CTRL_PLUG_3, OUTPUT);    /* D6 board pin */
+        pinMode(_STATE_CTRL_PLUG_4, OUTPUT);    /* D7 board pin */
+        pinMode(_CURRENT_PLUG_1, INPUT);
+        pinMode(_CURRENT_PLUG_2, INPUT);
+        pinMode(_CURRENT_PLUG_3, INPUT);
+        pinMode(_CURRENT_PLUG_4, INPUT);
 }
+#endif
+
+#ifdef _MODULE_TYPE_LIGTH
+void Config_configGPIO()
+{
+    pinMode(COMM_ENALE_IN, INPUT);          /* D2 board pin */
+    pinMode(COMM_ENABLE_OUT, OUTPUT);       /* D3 board pin */
+    pinMode(LED_ON_BOARD, OUTPUT);          /* GPIO 13 used to led blink */
+    pinMode(_CTRL_LIGTH_1, OUTPUT);         /* D4 board pin */
+    pinMode(_CTRL_LIGTH_2, OUTPUT);         /* D5 board pin */
+    pinMode(_CTRL_LIGTH_3, OUTPUT);         /* D6 board pin */
+}
+#endif
 
 
 /******************************************************************************************************************************************************************************************************************************************************** 

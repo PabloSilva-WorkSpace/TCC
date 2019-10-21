@@ -66,6 +66,7 @@
 /******************************************************************************************************************************************************************************************************************************************************** 
     ### Data Types 
 *********************************************************************************************************************************************************************************************************************************************************/
+extern EventGroupHandle_t gWiFi_appl_event_group;
 
 
 /******************************************************************************************************************************************************************************************************************************************************** 
@@ -74,6 +75,9 @@
 static const int RX_BUF_SIZE = 256;
 static const int TX_BUF_SIZE = 256;
 
+const int WIFI_STA_CONNECTED_BIT = BIT0;    /* Bit do event group usado para informar que o driver WiFi do ESP32 esta configurado como STA e estabeleceu conexão com o AP */
+const int WIFI_AP_CONNECTED_BIT  = BIT1;     /* Bit do event group usado para informar que o driver WiFi do ESP32 esta configurado como AP e esta preparado para conectar-se com STA */
+const int UART_TX_ENABLE         = BIT2;     /* Bit do event group usado para informar que o driver WiFi do ESP32 esta configurado como AP e esta preparado para conectar-se com STA */
 
 /******************************************************************************************************************************************************************************************************************************************************** 
     ### Functions Prototypes 

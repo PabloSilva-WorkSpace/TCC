@@ -9,6 +9,7 @@
 /********************************************************************************************************************************************************************************************************************************************************
     ### Headers includes 
 *********************************************************************************************************************************************************************************************************************************************************/
+#include "General_types.h"
 #include "Comm_appl.h"
 
 
@@ -19,8 +20,8 @@
 static const Kostia_CmdTable_t CmdTable_FromSlaveToMaster[] = {
     {{0x01U, 0x00U}, 0x01U, Comm_appl_QueryID_Callback},         /* Response to command: Query if slave is configured */
     {{0x02U, 0x00U}, 0x01U, Comm_appl_SetID_Callback},           /* Response to command: Set ID to slave */
-//  {{0x03U, 0x00U}, 0x01U, Comm_appl_RequestData_Callback},     /* Response to command: Request slave's data */
-//  {{0x04U, 0x00U}, 0x01U, Comm_appl_ConfigSlave_Callback},     /* Response to command: Config slave */
+    {{0x03U, 0x00U}, 0x01U, Comm_appl_ConfigSlave_Callback},     /* Response to command: Config slave */
+    {{0x04U, 0x00U}, 0x01U, Comm_appl_RequestData_Callback},     /* Response to command: Request slave's data */
     {{0x00U, 0x00U}, 0x00U, Comm_appl_CmdTableError}  /* Response to command: Must be the last element */
 };
 
@@ -151,6 +152,8 @@ byte Comm_appl_RHM(Uart_t *pUart)
         case RHM_State_TxUart_Send_Request:
         {
             //pUart->scheduleTable.pSlot = pUart->scheduleTable.pSlot->nextSlot;                                                                                    /* Teste_1: deletar slot que não responder 3x */
+
+            xEventGroupWaitBits( gWiFi_appl_event_group, UART_TX_ENABLE, false, true, portMAX_DELAY );                                                              /* Aguarda a liberação da comunicação UART */
             
             if( (pUart->scheduleTable.pLastSlotSent != pUart->scheduleTable.pFirstSlot) && (pUart->scheduleTable.pLastSlotSent == pUart->scheduleTable.pSlot) ){    /* Teste_1: deletar slot que não responder 3x */
                 nAttempt++;                                                                                                                                         /* Teste_1: deletar slot que não responder 3x */
@@ -412,7 +415,7 @@ void Comm_appl_Insert_Slot( ScheduleTable_t * pScheduleTable )
 void Comm_appl_Delete_Slot( ScheduleTable_t * pScheduleTable )
 {
     int i;
-    static Slot_t * pSlotAux;
+    Slot_t * pSlotAux;
     pSlotAux = pScheduleTable->pSlot;
     for(i = 0; i < pScheduleTable->Length - 1; i++){
         pScheduleTable->pSlot = pScheduleTable->pSlot->nextSlot;
@@ -553,7 +556,7 @@ static Kostia_Rsp_t Comm_appl_SetID_Callback(byte *pCmd, Uart_t *pUart)
         /* Insert new slot in schedule table */
         Comm_appl_Insert_Slot(&pUart->scheduleTable);
         /* Configuração inicial do primeiro slot (slot para mensagens de configuração dos slaves) */
-        Comm_appl_Set_Frame_Header(&pUart->scheduleTable.pLastSlot->frame, 0x00, 0x55, 0x03, 0x01, 0x01, pUart->RxBuffer[_ID_SRC], 0x01);
+        Comm_appl_Set_Frame_Header(&pUart->scheduleTable.pLastSlot->frame, 0x00, 0x55, 0x04, 0x01, 0x01, pUart->RxBuffer[_ID_SRC], 0x01);
         Comm_appl_Set_Frame_Checksum(&pUart->scheduleTable.pLastSlot->frame);
         /* Put pSlot in last slot */
         //pUart->scheduleTable.pSlot = pUart->scheduleTable.pLastSlot;  /* Teste_1: deletar slot que não responder 3x */
@@ -562,6 +565,22 @@ static Kostia_Rsp_t Comm_appl_SetID_Callback(byte *pCmd, Uart_t *pUart)
     }else{
         return KOSTIA_NOK;
     }
+}
+
+
+/******************************************************************************************************************************************************************************************************************************************************** 
+    Função
+    
+    Description: Function to read teh HW
+    
+    \Parameters: u08 *pCmd - command received from Kostia Com
+    
+    \Return value: Kostia_TRsp
+*********************************************************************************************************************************************************************************************************************************************************/
+static Kostia_Rsp_t Comm_appl_ConfigSlave_Callback(byte *pCmd, Uart_t *pUart)
+{
+    /* Chamar as funções que irão manipular essas respostas. Chamar as funções baseadas nos tipo de slave que respondeu */
+    return KOSTIA_NOK;
 }
 
 

@@ -9,6 +9,7 @@
 /********************************************************************************************************************************************************************************************************************************************************
     ### Headers includes 
 *********************************************************************************************************************************************************************************************************************************************************/ 
+#include "General_types.h"
 #include "MQTT_appl.h"
 
 
@@ -61,8 +62,43 @@ void MQTT_appl_Send_Message( void )
 
 
 void MQTT_fCallback(char* topic, byte* payload, unsigned int payloadLength){
-  Serial.println("");
-  Serial.println( topic );
-  Serial.println( payloadLength );
-  Serial.println( (char *)payload );
+    byte ref1[] = {0x31, 0x32, 0x33, 0x00};
+    byte ref2[] = {0x33, 0x32, 0x31, 0x00};
+    
+    Serial.println("");
+    Serial.println( topic );
+    Serial.println( payloadLength );
+    Serial.println( (char *)payload );
+    Serial.println( (char *)ref1 );
+    Serial.println( (char *)ref2 );
+    
+    if(  !memcmp( ref1, payload, payloadLength )  ){
+        xEventGroupClearBits( gWiFi_appl_event_group, UART_TX_ENABLE );   /* Sinalizar, ou informar, por meio deste event group que o ESP32 perdeu a conexão com o AP da rede WiFi configurada */
+        
+        mainData.uart.scheduleTable.slot[0].frame.SID = 0x03;
+        mainData.uart.scheduleTable.slot[0].frame.Type = 0x02;
+        mainData.uart.scheduleTable.slot[0].frame.Lenght = 0x15;
+        mainData.uart.scheduleTable.slot[0].frame.Data[0] = 0x00;
+        mainData.uart.scheduleTable.slot[0].frame.Data[1] = 0x00;
+        mainData.uart.scheduleTable.slot[0].frame.Data[2] = 0x00;
+        mainData.uart.scheduleTable.slot[0].frame.Data[3] = 0x00;
+        mainData.uart.scheduleTable.slot[0].frame.Data[4] = 0x01;
+      
+        xEventGroupSetBits( gWiFi_appl_event_group, UART_TX_ENABLE ); /* Sinalizar, ou informar, por meio deste event group que o ESP32 estabeleceu conecxão com o AP da rede WiFi configurada */
+    }
+
+    if(  !memcmp( ref2, payload, payloadLength )  ){
+        xEventGroupClearBits( gWiFi_appl_event_group, UART_TX_ENABLE );   /* Sinalizar, ou informar, por meio deste event group que o ESP32 perdeu a conexão com o AP da rede WiFi configurada */
+        
+        mainData.uart.scheduleTable.slot[0].frame.SID = 0x03;
+        mainData.uart.scheduleTable.slot[0].frame.Type = 0x02;
+        mainData.uart.scheduleTable.slot[0].frame.Lenght = 0x15;
+        mainData.uart.scheduleTable.slot[0].frame.Data[0] = 0x00;
+        mainData.uart.scheduleTable.slot[0].frame.Data[1] = 0x00;
+        mainData.uart.scheduleTable.slot[0].frame.Data[2] = 0x00;
+        mainData.uart.scheduleTable.slot[0].frame.Data[3] = 0x00;
+        mainData.uart.scheduleTable.slot[0].frame.Data[4] = 0x00;
+      
+        xEventGroupSetBits( gWiFi_appl_event_group, UART_TX_ENABLE ); /* Sinalizar, ou informar, por meio deste event group que o ESP32 estabeleceu conecxão com o AP da rede WiFi configurada */
+    }
 }

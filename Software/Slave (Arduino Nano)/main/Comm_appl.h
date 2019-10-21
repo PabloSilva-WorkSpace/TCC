@@ -101,7 +101,7 @@ void Comm_appl_Request_ChangeOf_FRM_State( Uart_t *, FRM_States_t );
 byte Comm_appl_RHM( Uart_t * );  /* RHM = Response Handling Machine (Máquina de Tratamento de Resposta) */
 void Comm_appl_Request_ChangeOf_RHM_State( Uart_t *, RHM_States_t );
 
-void Comm_appl_Init_Slave(Uart_t *, byte, byte);
+void Comm_appl_Init_Slave_Data(Uart_t *, byte, byte);
 
 void Comm_appl_Set_Frame_Header( Frame_t *, byte, byte, byte, byte, byte, byte, byte );
 void Comm_appl_Set_Frame_Data( Frame_t *, byte *, int );
@@ -114,6 +114,7 @@ int Comm_appl_Check_Frame_IsValid( Uart_t * );
 /* CMD  Table Functions */
 static Kostia_Rsp_t Comm_appl_QueryID (byte *pCmd, Uart_t *);
 static Kostia_Rsp_t Comm_appl_SetID (byte *pCmd, Uart_t *);
+static Kostia_Rsp_t Comm_appl_ConfigSlave(byte *pCmd, Uart_t *);
 static Kostia_Rsp_t Comm_appl_RequestData (byte *pCmd, Uart_t *);
 static Kostia_Rsp_t Comm_appl_CmdTableError(byte *pAddr, Uart_t *);
 static Kostia_Rsp_t Comm_appl_FindCommand(byte *pAddr, Uart_t *);
