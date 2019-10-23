@@ -16,8 +16,8 @@
 /********************************************************************************************************************************************************************************************************************************************************
     ### Global Variables into this scope (this file *.c) 
 *********************************************************************************************************************************************************************************************************************************************************/
-static char wifi_STA_SSID[SSID_SIZE] = "Oliani";
-static char wifi_STA_PASSWORD[PASSWORD_SIZE] = "11041990";
+static char wifi_STA_SSID[SSID_SIZE] = "AndroidAP7F6B";
+static char wifi_STA_PASSWORD[PASSWORD_SIZE] = "fark2662";
 static const char * wifi_AP_SSID = "Aquarium";
 static const char * wifi_AP_PASSWORD = "Aquarium"; 
 

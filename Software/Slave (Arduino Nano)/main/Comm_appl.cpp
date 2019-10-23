@@ -392,6 +392,7 @@ static Kostia_Rsp_t Comm_appl_SetID(byte *pCmd, Uart_t *pUart)
         pUart->frame.SID = *pCmd;                                         /* Identificador de serviço da mensagem */
         pUart->frame.Id_Source = pUart->RxBuffer[_ID_TRG];                /* ID do módulo transmissor */
         pUart->frame.Checksum = 0x00;                                     /* Checksum */
+        digitalWrite(COMM_ENABLE_OUT, LOW);                 /* Habilita o próximo slave a comunicar-se */
         return KOSTIA_OK;
     }else{
         return KOSTIA_NOK;

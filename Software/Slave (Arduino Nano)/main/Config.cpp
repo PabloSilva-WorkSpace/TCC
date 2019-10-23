@@ -17,19 +17,30 @@
   @Brief: Setting GPIOs 
 *********************************************************************************************************************************************************************************************************************************************************/
 #ifdef _MODULE_TYPE_PLUGS
-void Config_configGPIO()
+void Config_configGPIO()    /* Initial hardware configuration */
 {
-        pinMode(COMM_ENALE_IN, INPUT);          /* D2 board pin */
-        pinMode(COMM_ENABLE_OUT, OUTPUT);       /* D3 board pin */
-        pinMode(LED_ON_BOARD, OUTPUT);          /* GPIO 13 used to led blink */
-        pinMode(_STATE_CTRL_PLUG_1, OUTPUT);    /* D4 board pin */
-        pinMode(_STATE_CTRL_PLUG_2, OUTPUT);    /* D5 board pin */
-        pinMode(_STATE_CTRL_PLUG_3, OUTPUT);    /* D6 board pin */
-        pinMode(_STATE_CTRL_PLUG_4, OUTPUT);    /* D7 board pin */
-        pinMode(_CURRENT_PLUG_1, INPUT);
-        pinMode(_CURRENT_PLUG_2, INPUT);
-        pinMode(_CURRENT_PLUG_3, INPUT);
-        pinMode(_CURRENT_PLUG_4, INPUT);
+    /* Digital inputs */
+    pinMode(COMM_ENALE_IN, INPUT);          /* D2 board pin */
+    /* Analog inputs */
+    pinMode(_CURRENT_PLUG_1, INPUT);
+    pinMode(_CURRENT_PLUG_2, INPUT);
+    pinMode(_CURRENT_PLUG_3, INPUT);
+    pinMode(_CURRENT_PLUG_4, INPUT);
+    /* Digital outputs */
+    pinMode(_STATE_CTRL_PLUG_1, OUTPUT);    /* D4 board pin */
+    pinMode(_STATE_CTRL_PLUG_2, OUTPUT);    /* D5 board pin */
+    pinMode(_STATE_CTRL_PLUG_3, OUTPUT);    /* D6 board pin */
+    pinMode(_STATE_CTRL_PLUG_4, OUTPUT);    /* D7 board pin */
+    pinMode(LED_ON_BOARD, OUTPUT);          /* GPIO 13 used to led blink */
+    pinMode(COMM_ENABLE_OUT, OUTPUT);       /* D3 board pin */
+    
+    /* Setting initial values*/
+    digitalWrite(COMM_ENABLE_OUT, HIGH);
+    digitalWrite(LED_ON_BOARD, LOW);
+    digitalWrite(_STATE_CTRL_PLUG_1, LOW);
+    digitalWrite(_STATE_CTRL_PLUG_2, LOW);
+    digitalWrite(_STATE_CTRL_PLUG_3, LOW);
+    digitalWrite(_STATE_CTRL_PLUG_4, LOW);
 }
 #endif
 

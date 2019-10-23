@@ -415,7 +415,7 @@ void Comm_appl_Insert_Slot( ScheduleTable_t * pScheduleTable )
 void Comm_appl_Delete_Slot( ScheduleTable_t * pScheduleTable )
 {
     int i;
-    Slot_t * pSlotAux;
+    Slot_t * pSlotAux;   /* Duvida:: Quando declarei "static Slot_t * pSlotAux;" deu erro na execução. O ESP32 fazia reboot constantemente. Por que? */
     pSlotAux = pScheduleTable->pSlot;
     for(i = 0; i < pScheduleTable->Length - 1; i++){
         pScheduleTable->pSlot = pScheduleTable->pSlot->nextSlot;
