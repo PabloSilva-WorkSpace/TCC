@@ -22,6 +22,25 @@ extern MainData_t mainData;     /* Main Data of Module */
 /******************************************************************************************************************************************************************************************************************************************************** 
     ### Defines 
 *********************************************************************************************************************************************************************************************************************************************************/
+#define _S1        (0)  /* Sensor 1 Pin */
+#define _S1_TYPE   (0)  /* Sensor 1 Type:  Will be insert in frame Data[0] */
+#define _S1_VALUE  (1)  /* Sensor 1 Value: Will be insert in frame Data[1] */
+
+#define _S2        (0)  /* Sensor 2 Pin */
+#define _S2_TYPE   (2)  /* Sensor 2 Type:  Will be insert in frame Data[2] */
+#define _S2_VALUE  (3)  /* Sensor 2 Value: Will be insert in frame Data[3] */
+
+#define _S3        (0)  /* Sensor 3 Pin */
+#define _S3_TYPE   (4)  /* Sensor 3 Type:  Will be insert in frame Data[4] */
+#define _S3_VALUE  (5)  /* Sensor 3 Value: Will be insert in frame Data[5] */
+
+#define _S4        (0)  /* Sensor 4 Pin */
+#define _S4_TYPE   (6)  /* Sensor 4 Type:  Will be insert in frame Data[6] */
+#define _S4_VALUE  (7)  /* Sensor 4 Value: Will be insert in frame Data[7] */
+
+#define _S5        (0)  /* Sensor 5 Pin */
+#define _S5_TYPE   (8)  /* Sensor 5 Type:  Will be insert in frame Data[8] */
+#define _S5_VALUE  (9)  /* Sensor 5 Value: Will be insert in frame Data[9] */
 
 
 /******************************************************************************************************************************************************************************************************************************************************** 

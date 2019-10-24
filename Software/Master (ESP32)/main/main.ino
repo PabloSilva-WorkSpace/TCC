@@ -4,12 +4,17 @@
  * 
  * Date: 24/10/2019
  * 
+ * Características
+ * 1) Schedule table alocada estaticamente
+ * 
  * ToDo[PS] - need to improve the comments
- * 1) Alocação de slots - Dinamica ou Estatica
- * 2) Gravar e ler dados na NVS
- * 3) Comunicação MQTT
- * 4) Embarcar arquivo de binário (Embedding Binary Data) ou Embarcar arquivo de dados (Embedding Data File)
- * 5) Deletar slots
+ * 1) Gravar e ler dados na NVS
+ * 2) Comunicação MQTT
+ * 3) Rever e testar a lógica de DELETAR slots
+ * 4) Implementar o código de LEITURA dos sensores e ATUALIZAÇÃO do frame correspondente
+ * 5) Implementar o código de LEITURA da hora (tempo real) a partir da internet
+ * 6) Implementar a junção das Tasks Task_Comm_appl e TaskUART_TX
+ * 
 *********************************************************************************************************************************************************************************************************************************************************/
 
 
@@ -52,8 +57,9 @@ void setup()
     MQTT_appl_Start_MQTT_Client();
     vTaskDelay(2000/portTICK_PERIOD_MS);
     
-    /* Tasks create */
+    /* Criação das Tasks */
     xTaskCreatePinnedToCore(Task_Comm_appl, "Task_Comm_appl", 16384, NULL, 2, NULL, 0);
+    xTaskCreatePinnedToCore(Task_Control_appl, "Task_Control_appl", 16384, NULL, 2, NULL, 0);
     xTaskCreatePinnedToCore(TaskUART_TX, "TaskUART_TX", 16384, NULL, 3, NULL, 0);
     xTaskCreatePinnedToCore(Task_MQTT_appl, "Task_MQTT_appl", 16384, NULL, 1, NULL, 1);
     
@@ -77,10 +83,19 @@ void loop()
 *********************************************************************************************************************************************************************************************************************************************************/
 void Task_Comm_appl(void* Parameters)
 {
+    int i = 0;
     for(;;){
+      /* Chamar a máquina de estados que controla o envio de frames no barramento UART */
       Comm_appl_FSM(&mainData.uart);
+      /* Chamar a máquina de estados que controla a recepção de frames no barramento UART */
       Comm_appl_FRM(&mainData.uart);
+      /* Chamar a máquina de estados que controla a lógica da comunicação no barramento UART */
       Comm_appl_RHM(&mainData.uart);
+      /* Lógica que opera junto com a RHM, solicita a RHM que envie o frame do slot no barramento UART */
+//      if(i >= 50){
+//          Comm_appl_Request_ChangeOf_RHM_State(&mainData.uart, RHM_State_TxUart_Send_Request);
+//      }
+      /* Bloquear a Task por 10ms, a fim de liberar o processador para executar as demais Tasks */
       vTaskDelay(10/portTICK_PERIOD_MS);
     }
 }
@@ -94,7 +109,9 @@ void TaskUART_TX(void* Parameters)
 {
     for(;;){
       digitalWrite(LED_ON_BOARD, !digitalRead(LED_ON_BOARD));
+      /* Chamar a máquina de estados que controla a comunicação no barramento UART */
       Comm_appl_Request_ChangeOf_RHM_State(&mainData.uart, RHM_State_TxUart_Send_Request);
+      /* Bloquear a Task por 500ms, a fim de liberar o processador para executar as demais Tasks */
       vTaskDelay(500/portTICK_PERIOD_MS);
     }
 }
@@ -107,11 +124,38 @@ void TaskUART_TX(void* Parameters)
 void Task_MQTT_appl(void* Parameters)
 {
     for(;;){
+      /* Chamar a máquina de estados que envia informações ao Broker MQTT */
       MQTT_appl_Send_Message();
+      /* Bloquear a Task por 5000ms, a fim de liberar o processador para executar as demais Tasks */
       vTaskDelay(5000/portTICK_PERIOD_MS);
     }
 }
 
+
+/********************************************************************************************************************************************************************************************************************************************************
+  Task CONTROL
+  @Brief: Task responsável por alterar o estado da máquina de transmissão (Tx), com o propósito da UART transmitir frames.
+*********************************************************************************************************************************************************************************************************************************************************/
+void Task_Control_appl(void* Parameters)
+{
+    for(;;){
+      /* Chamada da máquina de estados que lê o TIPO e o VALOR de cada entrada de sensor */
+      Control_appl_SMC( &mainData.control );  
+      /* Atualizar os campos TIPO e VALOR referente aos sensores no frame do primeiro slot (slot de configuração) */
+      mainData.uart.scheduleTable.slot[0].frame.Data[_S1_TYPE]  = mainData.control.module.sensor_1.value;
+      mainData.uart.scheduleTable.slot[0].frame.Data[_S1_VALUE] = mainData.control.module.sensor_1.value;
+      mainData.uart.scheduleTable.slot[0].frame.Data[_S2_TYPE]  = mainData.control.module.sensor_1.value;
+      mainData.uart.scheduleTable.slot[0].frame.Data[_S2_VALUE] = mainData.control.module.sensor_1.value;
+      mainData.uart.scheduleTable.slot[0].frame.Data[_S3_TYPE]  = mainData.control.module.sensor_1.value;
+      mainData.uart.scheduleTable.slot[0].frame.Data[_S3_VALUE] = mainData.control.module.sensor_1.value;
+      mainData.uart.scheduleTable.slot[0].frame.Data[_S4_TYPE]  = mainData.control.module.sensor_1.value;
+      mainData.uart.scheduleTable.slot[0].frame.Data[_S4_VALUE] = mainData.control.module.sensor_1.value;
+      mainData.uart.scheduleTable.slot[0].frame.Data[_S5_TYPE]  = mainData.control.module.sensor_1.value;
+      mainData.uart.scheduleTable.slot[0].frame.Data[_S5_VALUE] = mainData.control.module.sensor_1.value;
+      /* Bloquear a Task por 100ms, a fim de liberar o processador para executar as demais Tasks */
+      vTaskDelay(100/portTICK_PERIOD_MS);
+    }
+}
 
 
 /*
