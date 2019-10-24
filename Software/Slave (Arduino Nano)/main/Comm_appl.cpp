@@ -20,7 +20,7 @@
 static const Kostia_CmdTable_t CmdTable_FromMasterToSlave[] = {
     {{0x01U, 0x01U, 0x01U}, 0x01U, Comm_appl_QueryID},       /* Query if slave is configured */
     {{0x02U, 0x01U, 0x01U}, 0x01U, Comm_appl_SetID},         /* Set ID to slave */
-    {{0x03U, 0x01U, 0x01U}, 0x01U, Comm_appl_ConfigSlave},   /* Config slave command */
+    {{0x03U, 0x02U, 0x01U}, 0x01U, Comm_appl_ConfigSlave},   /* Config slave command */
     {{0x04U, 0x01U, 0x01U}, 0x01U, Comm_appl_RequestData},   /* Request slave's data */
     {{0x00U, 0x00U, 0x00U}, 0x00U, Comm_appl_CmdTableError}  /* Must be the last element */
 };
@@ -148,7 +148,9 @@ byte Comm_appl_RHM(Uart_t *pUart)
         {
             if(Comm_appl_FindCommand(&pUart->RxBuffer[_SID], pUart) == KOSTIA_OK){
                 pUart->RHM_State = RHM_State_Idle;
-                Comm_appl_Request_ChangeOf_FSM_State(pUart, FSM_State_Send);
+                if(digitalRead(COMM_ENALE_IN) == LOW){
+                    Comm_appl_Request_ChangeOf_FSM_State(pUart, FSM_State_Send);   /* Ordem para a FSM (Frame Send Machine) transmitir um frame de resposta (previamente configurada em alguma das função da tabela de comandos)  */
+                }
             }else{
                 pUart->RHM_State = RHM_State_Idle;
             }
@@ -390,31 +392,9 @@ static Kostia_Rsp_t Comm_appl_SetID(byte *pCmd, Uart_t *pUart)
 {
     if(pUart->frame.Id_Source == 0x00){
         pUart->frame.SID = *pCmd;                                         /* Identificador de serviço da mensagem */
-        pUart->frame.Id_Source = pUart->RxBuffer[_ID_TRG];                /* ID do módulo transmissor */
+        pUart->frame.Id_Source = pUart->RxBuffer[_ID_TRG];                /* Novo ID deste módulo */
         pUart->frame.Checksum = 0x00;                                     /* Checksum */
-        digitalWrite(COMM_ENABLE_OUT, LOW);                 /* Habilita o próximo slave a comunicar-se */
-        return KOSTIA_OK;
-    }else{
-        return KOSTIA_NOK;
-    }
-}
-
-
-/******************************************************************************************************************************************************************************************************************************************************** 
-    Função
-    
-    Description: Function to read teh HW
-    
-    \Parameters: u08 *pCmd - command received from Kostia Com
-    
-    \Return value: Kostia_TRsp
-*********************************************************************************************************************************************************************************************************************************************************/
-static Kostia_Rsp_t Comm_appl_RequestData(byte *pCmd, Uart_t *pUart)
-{
-    if(pUart->RxBuffer[_ID_TRG] == pUart->frame.Id_Source){
-        pUart->frame.SID = *pCmd;                                         /* Identificador de serviço da mensagem */
-        pUart->frame.Checksum = 0x00;                                     /* Checksum */
-        /* Ler os pinos de entrada para pegar os valores do sensor e controlar a saída. Depende do módulo. */
+        digitalWrite(COMM_ENABLE_OUT, LOW);                               /* Habilita o próximo slave a comunicar-se */
         return KOSTIA_OK;
     }else{
         return KOSTIA_NOK;
@@ -432,33 +412,40 @@ static Kostia_Rsp_t Comm_appl_RequestData(byte *pCmd, Uart_t *pUart)
     \Return value: Kostia_TRsp
 *********************************************************************************************************************************************************************************************************************************************************/
 #ifdef _MODULE_TYPE_PLUGS
-static Kostia_Rsp_t Comm_appl_ConfigSlave(byte *pCmd, Uart_t *pUart)
+static Kostia_Rsp_t Comm_appl_RequestData(byte *pCmd, Uart_t *pUart)
 {
-    if(pUart->RxBuffer[_TYPE] == pUart->frame.Type && pUart->RxBuffer[_ID_TRG] == 0xFF){
-        /* Get setting to plug 1 */
-        module.plug_1.mode       = pUart->RxBuffer[_PLUG_MODE];
-        module.plug_1.sensor_ref = pUart->RxBuffer[_PLUG_SENSOR_REF];
-        module.plug_1.level_type = pUart->RxBuffer[_PLUG_LEVEL_TYPE];
-        module.plug_1.set_point  = pUart->RxBuffer[_PLUG_SET_POINT];
-        module.plug_1.potency    = pUart->RxBuffer[_PLUG_POTENCY];
-        /* Get setting to plug 2 */
-        module.plug_2.mode = pUart->RxBuffer[_PLUG_MODE + 5];
-        module.plug_2.sensor_ref = pUart->RxBuffer[_PLUG_SENSOR_REF + 5];
-        module.plug_2.level_type = pUart->RxBuffer[_PLUG_LEVEL_TYPE + 5];
-        module.plug_2.set_point  = pUart->RxBuffer[_PLUG_SET_POINT + 5];
-        module.plug_2.potency    = pUart->RxBuffer[_PLUG_POTENCY + 5];
-        /* Get setting to plug 3 */
-        module.plug_3.mode       = pUart->RxBuffer[_PLUG_MODE + 10];
-        module.plug_3.sensor_ref = pUart->RxBuffer[_PLUG_SENSOR_REF + 10];
-        module.plug_3.level_type = pUart->RxBuffer[_PLUG_LEVEL_TYPE + 10];
-        module.plug_3.set_point  = pUart->RxBuffer[_PLUG_SET_POINT + 10];
-        module.plug_3.potency    = pUart->RxBuffer[_PLUG_POTENCY + 10];
-        /* Get setting to plug 4 */
-        module.plug_4.mode       = pUart->RxBuffer[_PLUG_MODE + 15];
-        module.plug_4.sensor_ref = pUart->RxBuffer[_PLUG_SENSOR_REF + 15];
-        module.plug_4.level_type = pUart->RxBuffer[_PLUG_LEVEL_TYPE + 15];
-        module.plug_4.set_point  = pUart->RxBuffer[_PLUG_SET_POINT + 15];
-        module.plug_4.potency    = pUart->RxBuffer[_PLUG_POTENCY + 15];
+    if(pUart->RxBuffer[_ID_TRG] == pUart->frame.Id_Source){
+        pUart->frame.SID = *pCmd;       /* Identificador de serviço da mensagem */
+        pUart->frame.Checksum = 0x00;   /* Checksum */
+        /* Preparação do frame de resposta: Copia os dados da estrutura status_module, a qual contém as informações do módulo */
+        /* Plug 1 */
+        pUart->frame.Data[0] = status_module.plug_1.mode;
+        pUart->frame.Data[1] = status_module.plug_1.sensor_ref;
+        pUart->frame.Data[2] = status_module.plug_1.level_type;
+        pUart->frame.Data[3] = status_module.plug_1.set_point;
+        pUart->frame.Data[4] = status_module.plug_1.potency;
+        pUart->frame.Data[5] = status_module.plug_1.on_off;
+        /* Plug 2 */
+        pUart->frame.Data[6] = status_module.plug_2.mode;
+        pUart->frame.Data[7] = status_module.plug_2.sensor_ref;
+        pUart->frame.Data[8] = status_module.plug_2.level_type;
+        pUart->frame.Data[9] = status_module.plug_2.set_point;
+        pUart->frame.Data[10] = status_module.plug_2.potency;
+        pUart->frame.Data[11] = status_module.plug_2.on_off;
+        /* Plug 3 */
+        pUart->frame.Data[12] = status_module.plug_3.mode;
+        pUart->frame.Data[13] = status_module.plug_3.sensor_ref;
+        pUart->frame.Data[14] = status_module.plug_3.level_type;
+        pUart->frame.Data[15] = status_module.plug_3.set_point;
+        pUart->frame.Data[16] = status_module.plug_3.potency;
+        pUart->frame.Data[17] = status_module.plug_3.on_off;
+        /* Plug 4 */
+        pUart->frame.Data[18] = status_module.plug_4.mode;
+        pUart->frame.Data[19] = status_module.plug_4.sensor_ref;
+        pUart->frame.Data[20] = status_module.plug_4.level_type;
+        pUart->frame.Data[21] = status_module.plug_4.set_point;
+        pUart->frame.Data[22] = status_module.plug_4.potency;
+        pUart->frame.Data[23] = status_module.plug_4.on_off;
         return KOSTIA_OK;
     }else{
         return KOSTIA_NOK;
@@ -468,10 +455,73 @@ static Kostia_Rsp_t Comm_appl_ConfigSlave(byte *pCmd, Uart_t *pUart)
 
 
 #ifdef _MODULE_TYPE_LIGTH
-static Kostia_Rsp_t Comm_appl_ConfigSlave(byte *pCmd, Uart_t *pUart)
+static Kostia_Rsp_t Comm_appl_RequestData(byte *pCmd, Uart_t *pUart)
+{
+    if(pUart->RxBuffer[_ID_TRG] == pUart->frame.Id_Source){
+        return KOSTIA_OK;
+    }else{
+        return KOSTIA_NOK;
+    }
+}
+#endif
+
+
+/******************************************************************************************************************************************************************************************************************************************************** 
+    Função
+    
+    Description: Function to read teh HW
+    
+    \Parameters: u08 *pCmd - command received from Kostia Com
+    
+    \Return value: Kostia_TRsp
+*********************************************************************************************************************************************************************************************************************************************************/
+#ifdef _MODULE_TYPE_PLUGS
+static Kostia_Rsp_t Comm_appl_ConfigSlave(byte *pCmd, Uart_t *pUart)    /* Copy datas of config frame to this module (Copia os dados de configuração para este frame) */
+{
+    if(pUart->RxBuffer[_TYPE] == pUart->frame.Type && pUart->RxBuffer[_ID_TRG] == 0xFF){
+        /* Preparação do frame de resposta: Neste caso, responde uma resposta positiva, isto é, retorna um frame com o mesmo ID do serviço Config Slave */
+        pUart->frame.SID = *pCmd;       /* Identificador de serviço da mensagem */
+        /* Copia os dados recebidos no frame de configuração para a estrutura modulo, a qual será usada no módulo Control_appl para controlar o módulo */
+        /* Get setting to plug 1 */
+        module.plug_1.mode       = pUart->RxBuffer[_PLUG_MODE       + 0];
+        module.plug_1.sensor_ref = pUart->RxBuffer[_PLUG_SENSOR_REF + 0];
+        module.plug_1.level_type = pUart->RxBuffer[_PLUG_LEVEL_TYPE + 0];
+        module.plug_1.set_point  = pUart->RxBuffer[_PLUG_SET_POINT  + 0];
+        module.plug_1.potency    = pUart->RxBuffer[_PLUG_POTENCY    + 0];
+        module.plug_1.on_off     = pUart->RxBuffer[_PLUG_ON_OFF     + 0];
+        /* Get setting to plug 2 */
+        module.plug_2.mode       = pUart->RxBuffer[_PLUG_MODE       + 6];
+        module.plug_2.sensor_ref = pUart->RxBuffer[_PLUG_SENSOR_REF + 6];
+        module.plug_2.level_type = pUart->RxBuffer[_PLUG_LEVEL_TYPE + 6];
+        module.plug_2.set_point  = pUart->RxBuffer[_PLUG_SET_POINT  + 6];
+        module.plug_2.potency    = pUart->RxBuffer[_PLUG_POTENCY    + 6];
+        module.plug_2.on_off     = pUart->RxBuffer[_PLUG_ON_OFF     + 6];
+        /* Get setting to plug 3 */
+        module.plug_3.mode       = pUart->RxBuffer[_PLUG_MODE       + 12];
+        module.plug_3.sensor_ref = pUart->RxBuffer[_PLUG_SENSOR_REF + 12];
+        module.plug_3.level_type = pUart->RxBuffer[_PLUG_LEVEL_TYPE + 12];
+        module.plug_3.set_point  = pUart->RxBuffer[_PLUG_SET_POINT  + 12];
+        module.plug_3.potency    = pUart->RxBuffer[_PLUG_POTENCY    + 12];
+        module.plug_3.on_off     = pUart->RxBuffer[_PLUG_ON_OFF     + 12];
+        /* Get setting to plug 4 */
+        module.plug_4.mode       = pUart->RxBuffer[_PLUG_MODE       + 18];
+        module.plug_4.sensor_ref = pUart->RxBuffer[_PLUG_SENSOR_REF + 18];
+        module.plug_4.level_type = pUart->RxBuffer[_PLUG_LEVEL_TYPE + 18];
+        module.plug_4.set_point  = pUart->RxBuffer[_PLUG_SET_POINT  + 18];
+        module.plug_4.potency    = pUart->RxBuffer[_PLUG_POTENCY    + 18];
+        module.plug_4.on_off     = pUart->RxBuffer[_PLUG_ON_OFF     + 18];
+        return KOSTIA_OK;
+    }else{
+        return KOSTIA_NOK;
+    }
+}
+#endif
+
+
+#ifdef _MODULE_TYPE_LIGTH
+static Kostia_Rsp_t Comm_appl_ConfigSlave(byte *pCmd, Uart_t *pUart)    /* Copy datas of config frame to this module (Copia os dados de configuração para este frame) */
 {
     if(pUart->RxBuffer[_TYPE] == pUart->frame.Type && pUart->RxBuffer[_ID_TRG] == pUart->frame.Id_Source){
-
         return KOSTIA_OK;
     }else{
         return KOSTIA_NOK;

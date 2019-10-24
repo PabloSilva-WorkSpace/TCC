@@ -16,8 +16,8 @@
 /********************************************************************************************************************************************************************************************************************************************************
     ### Global Variables into this scope (this file *.c) 
 *********************************************************************************************************************************************************************************************************************************************************/
-static char wifi_STA_SSID[SSID_SIZE] = "AndroidAP7F6B";
-static char wifi_STA_PASSWORD[PASSWORD_SIZE] = "fark2662";
+static char wifi_STA_SSID[SSID_SIZE] = "pablo";//"AquariumAP";
+static char wifi_STA_PASSWORD[PASSWORD_SIZE] = "JesusMeuSenhor030515";//"10101010";
 static const char * wifi_AP_SSID = "Aquarium";
 static const char * wifi_AP_PASSWORD = "Aquarium"; 
 
@@ -27,7 +27,11 @@ static const char * wifi_AP_PASSWORD = "Aquarium";
 *********************************************************************************************************************************************************************************************************************************************************/
 void Config_configGPIO()
 {
+    /* Digital outputs */
     pinMode(LED_ON_BOARD, OUTPUT);
+    pinMode(COMM_ENABLE_OUT, OUTPUT);
+    /* Setting initial values*/
+    digitalWrite(COMM_ENABLE_OUT, HIGH);
 }
 
 

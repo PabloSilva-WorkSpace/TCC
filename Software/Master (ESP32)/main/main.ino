@@ -2,11 +2,14 @@
  * Fish Tank automation project - TCC -  main file
  * Developer: Pablo
  * 
+ * Date: 24/10/2019
+ * 
  * ToDo[PS] - need to improve the comments
  * 1) Alocação de slots - Dinamica ou Estatica
  * 2) Gravar e ler dados na NVS
  * 3) Comunicação MQTT
  * 4) Embarcar arquivo de binário (Embedding Binary Data) ou Embarcar arquivo de dados (Embedding Data File)
+ * 5) Deletar slots
 *********************************************************************************************************************************************************************************************************************************************************/
 
 
@@ -35,22 +38,26 @@ void setup()
     Config_configGPIO();
     Config_configUART();
     Config_configWIFI(mainData.wifi.callback, &mainData.wifi.event_group);
-
     vTaskDelay(2000/portTICK_PERIOD_MS);
-    xEventGroupWaitBits( gWiFi_appl_event_group, WIFI_STA_CONNECTED_BIT, false, true, portMAX_DELAY );    /* Aguarda o ESP32 conectar-se a uma rede WiFi */
     
-    xEventGroupSetBits( gWiFi_appl_event_group, UART_TX_ENABLE );  /* Sinalizar, ou informar, a RHM por meio deste event group que a UART esta habilitada para comunicar */
+    xEventGroupWaitBits( gWiFi_appl_event_group, WIFI_STA_CONNECTED_BIT, false, true, portMAX_DELAY );    /* Aguardar o ESP32 conectar-se a uma rede WiFi */
+    
+    xEventGroupSetBits( gWiFi_appl_event_group, UART_TX_ENABLE );  /* Sinalizar, ou informar, a RHM por meio deste event group que a UART esta habilitada para comunicar (transmitir e receber frames) */
     
     /* Create Schedule Table */
     Comm_appl_Create_Schedule_Table(  &mainData.uart.scheduleTable );
     vTaskDelay(2000/portTICK_PERIOD_MS);
+    
     /* Iniciar a aplicação/serviço MQTT Client no ESP32 */
     MQTT_appl_Start_MQTT_Client();
     vTaskDelay(2000/portTICK_PERIOD_MS);
+    
     /* Tasks create */
     xTaskCreatePinnedToCore(Task_Comm_appl, "Task_Comm_appl", 16384, NULL, 2, NULL, 0);
     xTaskCreatePinnedToCore(TaskUART_TX, "TaskUART_TX", 16384, NULL, 3, NULL, 0);
     xTaskCreatePinnedToCore(Task_MQTT_appl, "Task_MQTT_appl", 16384, NULL, 1, NULL, 1);
+    
+    digitalWrite(COMM_ENABLE_OUT, LOW);   /* Enable next module to communicate */
 }
 
 

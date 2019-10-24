@@ -57,6 +57,7 @@
 #define SSID_SIZE (30) 
 #define PASSWORD_SIZE (30) 
 #define LED_ON_BOARD (2)
+#define COMM_ENABLE_OUT (4)
 #define UART_ID (UART_NUM_2)
 #define TXD_PIN (GPIO_NUM_17)
 #define RXD_PIN (GPIO_NUM_16)

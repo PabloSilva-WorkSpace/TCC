@@ -2,7 +2,10 @@
  * Fish Tank automation project - TCC -  main file
  * Developer: Pablo
  * 
+ * Date: 24/10/2019
+ * 
  * ToDo[PS] - need to improve the comments
+ * 1) Implementar o módulo Light
 *********************************************************************************************************************************************************************************************************************************************************/
 
 
@@ -18,9 +21,11 @@
 *********************************************************************************************************************************************************************************************************************************************************/
 #ifdef _MODULE_TYPE_PLUGS
     Plugs_t module;
+    Plugs_t status_module;
 #endif
 #ifdef _MODULE_TYPE_LIGTH
     Ligths_t module;
+    Ligths_t status_module;
 #endif
 
 
@@ -100,7 +105,7 @@ void Task10ms(void)
 *********************************************************************************************************************************************************************************************************************************************************/
 void Task500ms(void)
 {
-    //digitalWrite(LED_ON_BOARD, !digitalRead(LED_ON_BOARD));
+    digitalWrite(LED_ON_BOARD, !digitalRead(LED_ON_BOARD));
 }
 
 
@@ -111,16 +116,14 @@ void Task500ms(void)
 #ifdef _MODULE_TYPE_PLUGS
 void Task1000ms(void)
 {
-    Control_appl_SMC();
+    Control_appl_SMC(&mainData.control);
 }
 #endif
 
 #ifdef _MODULE_TYPE_LIGTH
 void Task1000ms(void)
 {
-    digitalWrite(_CTRL_LIGTH_1, !digitalRead(_CTRL_LIGTH_1));
-    digitalWrite(_CTRL_LIGTH_2, !digitalRead(_CTRL_LIGTH_2));
-    digitalWrite(_CTRL_LIGTH_3, !digitalRead(_CTRL_LIGTH_3));
+    Control_appl_SMC(&mainData.control);
 }
 #endif
 

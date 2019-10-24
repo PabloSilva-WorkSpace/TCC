@@ -73,32 +73,34 @@ void MQTT_fCallback(char* topic, byte* payload, unsigned int payloadLength){
     Serial.println( (char *)ref2 );
     
     if(  !memcmp( ref1, payload, payloadLength )  ){
-        xEventGroupClearBits( gWiFi_appl_event_group, UART_TX_ENABLE );   /* Sinalizar, ou informar, por meio deste event group que o ESP32 perdeu a conexão com o AP da rede WiFi configurada */
+        xEventGroupClearBits( gWiFi_appl_event_group, UART_TX_ENABLE );   /* Sinalizar, ou informar, por meio deste event group que o ESP32 esta configurando um slot da schedule table. Isso deve inibir a transmissão de frames na UART  */
         
+        /* Header Fields */
         mainData.uart.scheduleTable.slot[0].frame.SID = 0x03;
         mainData.uart.scheduleTable.slot[0].frame.Type = 0x02;
-        mainData.uart.scheduleTable.slot[0].frame.Lenght = 0x15;
-        mainData.uart.scheduleTable.slot[0].frame.Data[0] = 0x00;
-        mainData.uart.scheduleTable.slot[0].frame.Data[1] = 0x00;
-        mainData.uart.scheduleTable.slot[0].frame.Data[2] = 0x00;
-        mainData.uart.scheduleTable.slot[0].frame.Data[3] = 0x00;
-        mainData.uart.scheduleTable.slot[0].frame.Data[4] = 0x01;
+        mainData.uart.scheduleTable.slot[0].frame.Lenght = 0x19;
+        /* Data Fields*/
+        mainData.uart.scheduleTable.slot[0].frame.Data[5] = 0x01;
+        mainData.uart.scheduleTable.slot[0].frame.Data[11] = 0x01;
+        mainData.uart.scheduleTable.slot[0].frame.Data[17] = 0x01;
+        mainData.uart.scheduleTable.slot[0].frame.Data[23] = 0x01;
       
-        xEventGroupSetBits( gWiFi_appl_event_group, UART_TX_ENABLE ); /* Sinalizar, ou informar, por meio deste event group que o ESP32 estabeleceu conecxão com o AP da rede WiFi configurada */
+        xEventGroupSetBits( gWiFi_appl_event_group, UART_TX_ENABLE );     /* Sinalizar, ou informar, por meio deste event group que o ESP32 finalizou a configuração do slot da schedule table. Isso deve habilitar a transmissão de frames na UART  */
     }
 
     if(  !memcmp( ref2, payload, payloadLength )  ){
-        xEventGroupClearBits( gWiFi_appl_event_group, UART_TX_ENABLE );   /* Sinalizar, ou informar, por meio deste event group que o ESP32 perdeu a conexão com o AP da rede WiFi configurada */
-        
+        xEventGroupClearBits( gWiFi_appl_event_group, UART_TX_ENABLE );   /* Sinalizar, ou informar, por meio deste event group que o ESP32 esta configurando um slot da schedule table. Isso deve inibir a transmissão de frames na UART  */
+
+        /* Header Fields */
         mainData.uart.scheduleTable.slot[0].frame.SID = 0x03;
         mainData.uart.scheduleTable.slot[0].frame.Type = 0x02;
-        mainData.uart.scheduleTable.slot[0].frame.Lenght = 0x15;
-        mainData.uart.scheduleTable.slot[0].frame.Data[0] = 0x00;
-        mainData.uart.scheduleTable.slot[0].frame.Data[1] = 0x00;
-        mainData.uart.scheduleTable.slot[0].frame.Data[2] = 0x00;
-        mainData.uart.scheduleTable.slot[0].frame.Data[3] = 0x00;
-        mainData.uart.scheduleTable.slot[0].frame.Data[4] = 0x00;
+        mainData.uart.scheduleTable.slot[0].frame.Lenght = 0x19;
+        /* Data Fields*/
+        mainData.uart.scheduleTable.slot[0].frame.Data[5]  = 0x00;
+        mainData.uart.scheduleTable.slot[0].frame.Data[11] = 0x00;
+        mainData.uart.scheduleTable.slot[0].frame.Data[17] = 0x00;
+        mainData.uart.scheduleTable.slot[0].frame.Data[23] = 0x00;
       
-        xEventGroupSetBits( gWiFi_appl_event_group, UART_TX_ENABLE ); /* Sinalizar, ou informar, por meio deste event group que o ESP32 estabeleceu conecxão com o AP da rede WiFi configurada */
+        xEventGroupSetBits( gWiFi_appl_event_group, UART_TX_ENABLE );     /* Sinalizar, ou informar, por meio deste event group que o ESP32 finalizou a configuração do slot da schedule table. Isso deve habilitar a transmissão de frames na UART  */
     }
 }

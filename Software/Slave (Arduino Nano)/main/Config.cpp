@@ -47,12 +47,21 @@ void Config_configGPIO()    /* Initial hardware configuration */
 #ifdef _MODULE_TYPE_LIGTH
 void Config_configGPIO()
 {
+    /* Digital inputs */
     pinMode(COMM_ENALE_IN, INPUT);          /* D2 board pin */
+    /* Digital outputs */
     pinMode(COMM_ENABLE_OUT, OUTPUT);       /* D3 board pin */
     pinMode(LED_ON_BOARD, OUTPUT);          /* GPIO 13 used to led blink */
     pinMode(_CTRL_LIGTH_1, OUTPUT);         /* D4 board pin */
     pinMode(_CTRL_LIGTH_2, OUTPUT);         /* D5 board pin */
     pinMode(_CTRL_LIGTH_3, OUTPUT);         /* D6 board pin */
+    
+    /* Setting initial values*/
+    digitalWrite(COMM_ENABLE_OUT, HIGH);
+    digitalWrite(LED_ON_BOARD, LOW);
+    digitalWrite(_CTRL_LIGTH_1, LOW);
+    digitalWrite(_CTRL_LIGTH_2, LOW);
+    digitalWrite(_CTRL_LIGTH_3, LOW);
 }
 #endif
 

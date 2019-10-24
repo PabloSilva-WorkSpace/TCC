@@ -151,22 +151,24 @@ byte Comm_appl_RHM(Uart_t *pUart)
         }
         case RHM_State_TxUart_Send_Request:
         {
-            //pUart->scheduleTable.pSlot = pUart->scheduleTable.pSlot->nextSlot;                                                                                    /* Teste_1: deletar slot que não responder 3x */
-
             xEventGroupWaitBits( gWiFi_appl_event_group, UART_TX_ENABLE, false, true, portMAX_DELAY );                                                              /* Aguarda a liberação da comunicação UART */
-            
-            if( (pUart->scheduleTable.pLastSlotSent != pUart->scheduleTable.pFirstSlot) && (pUart->scheduleTable.pLastSlotSent == pUart->scheduleTable.pSlot) ){    /* Teste_1: deletar slot que não responder 3x */
-                nAttempt++;                                                                                                                                         /* Teste_1: deletar slot que não responder 3x */
-                if(nAttempt >= 4){                                                                                                                                  /* Teste_1: deletar slot que não responder 3x */
-                    Comm_appl_Delete_Slot( &pUart->scheduleTable );                                                                                                 /* Teste_1: deletar slot que não responder 3x */
-                    nAttempt = 0;                                                                                                                                   /* Teste_1: deletar slot que não responder 3x */
-                }                                                                                                                                                   /* Teste_1: deletar slot que não responder 3x */
-            }                                                                                                                                                       /* Teste_1: deletar slot que não responder 3x */
+
+            /* Lógica para deletar um slot se não for respondido 3x, se não for o primeiro slot. Se for o primeiro slot passa para o próximo slot */
+            if( (pUart->scheduleTable.pSlot == pUart->scheduleTable.pLastSlotSent) && (pUart->scheduleTable.pSlot != pUart->scheduleTable.pFirstSlot) ){
+                nAttempt++;
+                if(nAttempt >= 3){
+                    Comm_appl_Delete_Slot( &pUart->scheduleTable );
+                    nAttempt = 0;
+                }
+            }
+            else if( (pUart->scheduleTable.pSlot == pUart->scheduleTable.pLastSlotSent) && (pUart->scheduleTable.pSlot == pUart->scheduleTable.pFirstSlot) ){
+                pUart->scheduleTable.pSlot = pUart->scheduleTable.pSlot->nextSlot;
+            }
                         
             Comm_appl_Request_ChangeOf_FSM_State(pUart, FSM_State_Send);
             Comm_appl_Request_ChangeOf_RHM_State(pUart, RHM_State_Idle);
             
-            pUart->scheduleTable.pLastSlotSent = pUart->scheduleTable.pSlot;                                                                                         /* Teste_1: deletar slot que não responder 3x */
+            pUart->scheduleTable.pLastSlotSent = pUart->scheduleTable.pSlot;
 
             break;
         }
@@ -176,14 +178,20 @@ byte Comm_appl_RHM(Uart_t *pUart)
             Comm_appl_Request_ChangeOf_RHM_State(pUart, RHM_State_Process);
             break;
         }
-        case RHM_State_RxUart_Notify_Echo:                                                                                                                           /* Teste_1: deletar slot que não responder 3x */
-        {                                                                                                                                                            /* Teste_1: deletar slot que não responder 3x */
-            if( pUart->scheduleTable.pSlot == pUart->scheduleTable.pFirstSlot){                                                                                           /* Teste_1: deletar slot que não responder 3x */
-                pUart->scheduleTable.pSlot = pUart->scheduleTable.pSlot->nextSlot;                                                                                   /* Teste_1: deletar slot que não responder 3x */
-            }                                                                                                                                                        /* Teste_1: deletar slot que não responder 3x */
-            Comm_appl_Request_ChangeOf_RHM_State(pUart, RHM_State_Idle);                                                                                             /* Teste_1: deletar slot que não responder 3x */
-            break;                                                                                                                                                   /* Teste_1: deletar slot que não responder 3x */
-        }                                                                                                                                                            /* Teste_1: deletar slot que não responder 3x */
+        case RHM_State_RxUart_Notify_Echo:
+        {
+            /* Se o eco for referente ao serviço Config Slave (0x03), resetamos o conteúdo do primeiro slot para serviço Query ID (0x01) - Isto é uma garantia, para o caso do slave não responder (ex.: não estiver no barramento) */
+            if( pUart->RxBuffer[_SID] == 0x03){
+                pUart->scheduleTable.pFirstSlot->frame.SID = 0x01;                  /* Identificador de serviço da mensagem: {0x01: Query ID} */
+                pUart->scheduleTable.pFirstSlot->frame.Type = 0x01;                 /* Tipo de módulo transmissor: {0x01 = Master} */
+                pUart->scheduleTable.pFirstSlot->frame.Id_Source = 0x01;            /* ID do módulo transmissor: {0x01 = Master} */
+                pUart->scheduleTable.pFirstSlot->frame.Id_Target = 0xFF;            /* ID do módulo alvo: {0xFF = Broadcast} */
+                pUart->scheduleTable.pFirstSlot->frame.Lenght = 0x01;               /* Comprimento da mensagem: {(X: Dados) + (1: Checksum)} */
+                pUart->scheduleTable.pFirstSlot->frame.Checksum = 0x00;             /* Checksum */
+            }
+            Comm_appl_Request_ChangeOf_RHM_State(pUart, RHM_State_Idle);
+            break;
+        }
         case RHM_State_Process:
         {
             if(Comm_appl_FindCommand(&pUart->RxBuffer[_SID], pUart) == KOSTIA_OK){
@@ -425,6 +433,7 @@ void Comm_appl_Delete_Slot( ScheduleTable_t * pScheduleTable )
     }
     pScheduleTable->pSlot->nextSlot = pSlotAux->nextSlot;
     Comm_appl_Reset_Slot(pSlotAux);
+    pScheduleTable->Length--;
     /* Posicionar o pSlot no primeiro slot depois de deletar algum slot */
     pScheduleTable->pSlot = pScheduleTable->pFirstSlot;
 }
@@ -580,7 +589,20 @@ static Kostia_Rsp_t Comm_appl_SetID_Callback(byte *pCmd, Uart_t *pUart)
 static Kostia_Rsp_t Comm_appl_ConfigSlave_Callback(byte *pCmd, Uart_t *pUart)
 {
     /* Chamar as funções que irão manipular essas respostas. Chamar as funções baseadas nos tipo de slave que respondeu */
-    return KOSTIA_NOK;
+    Serial.println("Config module callback");
+    if(pUart->scheduleTable.pFirstSlot->frame.Id_Source == 0x01){
+        pUart->scheduleTable.pFirstSlot->frame.SID = 0x01;                  /* Identificador de serviço da mensagem: {0x01: Query ID} */
+        pUart->scheduleTable.pFirstSlot->frame.Type = 0x01;                 /* Tipo de módulo transmissor: {0x01 = Master} */
+        pUart->scheduleTable.pFirstSlot->frame.Id_Source = 0x01;            /* ID do módulo transmissor: {0x01 = Master} */
+        pUart->scheduleTable.pFirstSlot->frame.Id_Target = 0xFF;            /* ID do módulo alvo: {0xFF = Broadcast} */
+        pUart->scheduleTable.pFirstSlot->frame.Lenght = 0x01;               /* Comprimento da mensagem: {(X: Dados) + (1: Checksum)} */
+        pUart->scheduleTable.pFirstSlot->frame.Checksum = 0x00;             /* Checksum */
+        /* Put pSlot in last slot */
+        pUart->scheduleTable.pSlot = pUart->scheduleTable.pFirstSlot;       /* Retorna o ponteiro da scheduletable para o primeiro slot (Slot de configuração) */
+        return KOSTIA_OK;
+    }else{
+        return KOSTIA_NOK;
+    }
 }
 
 
