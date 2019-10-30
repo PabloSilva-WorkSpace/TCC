@@ -15,6 +15,7 @@
 #include "Comm_appl.h"  /* Declara os dados e funções referentes a comunicação UART */
 #include "WiFi_appl.h"  /* Declara os dados e funções referentes a comunicação WiFi */
 #include "MQTT_appl.h"  /* Declara os dados e funções referentes a comunicação WiFi */
+#include "Control_appl.h"  /* Declara os dados e funções referentes a comunicação WiFi */
 
 /******************************************************************************************************************************************************************************************************************************************************** 
     ### Libraries includes 
@@ -33,8 +34,31 @@
     ### Data Types 
 *********************************************************************************************************************************************************************************************************************************************************/
 typedef struct{
+    byte id;        /* ID do plug = {0x01 plug_1 | 0x02 plug_2 | 0x03 plug_3 | 0x03 plug_3} */
+    byte mode;      /* Modo de operação = {0x00 Manual | 0x02 Auto_por_sensor | 0x03 Auto_por_hora} */
+    byte on_off;
+    byte sensor_ref;
+    byte min_max;
+    byte set_point;
+    byte hour_on_msb;
+    byte hour_on_lsb;
+    byte hour_off_msb;
+    byte hour_off_lsb;
+    byte potency;
+}Plug_Resp_Data_t;
+
+typedef struct{
+    Plug_Resp_Data_t plug_1;
+    Plug_Resp_Data_t plug_2;
+    Plug_Resp_Data_t plug_3;
+    Plug_Resp_Data_t plug_4;
+}Plugs_Resp_Data_t;
+
+typedef struct{
     Uart_t uart;
     WiFi_t wifi;
+    Control_t control;
+    Plugs_Resp_Data_t module_plug;
 }MainData_t;
 
 
@@ -46,9 +70,11 @@ typedef struct{
 /******************************************************************************************************************************************************************************************************************************************************** 
     ### Functions Prototypes 
 *********************************************************************************************************************************************************************************************************************************************************/
-void Task_Comm_appl( void * );    /* Each 10ms */
-void TaskUART_TX( void * );       /* Each 500ms */
-void Task_MQTT_appl( void * );    /* Each 10000ms*/
+void Task_Comm_appl( void * );              /* Each 10ms */
+void Task_Control_appl(void* Parameters);   /* Each 100ms*/
+void TaskUART_TX( void * );                 /* Each 500ms */
+void Task_MQTT_appl( void * );              /* Each 5000ms*/
+
 
 
 #endif

@@ -1,5 +1,5 @@
 /********************************************************************************************************************************************************************************************************************************************************
- * Fish Tank automation project - TCC -  Config file
+ * Fish Tank automation project - TCC -  Control_appl file
  * Developer: Pablo
  * 
  * ToDo[PS] - need to improve the comments
@@ -10,77 +10,124 @@
     ### Headers includes 
 *********************************************************************************************************************************************************************************************************************************************************/
 #include "General_types.h"
-#include "Config.h"
+#include "Control_appl.h"
 
 
 /********************************************************************************************************************************************************************************************************************************************************
     ### Global Variables into this scope (this file *.c) 
 *********************************************************************************************************************************************************************************************************************************************************/
-static char wifi_STA_SSID[SSID_SIZE] = "AquariumAP";
-static char wifi_STA_PASSWORD[PASSWORD_SIZE] = "10101010";
-static const char * wifi_AP_SSID = "Aquarium";
-static const char * wifi_AP_PASSWORD = "Aquarium"; 
 
 
 /********************************************************************************************************************************************************************************************************************************************************
   @Brief: Setting GPIOs
 *********************************************************************************************************************************************************************************************************************************************************/
-void Config_configGPIO()
-{
-    /* Digital outputs */
-    pinMode(LED_ON_BOARD, OUTPUT);
-    pinMode(COMM_ENABLE_OUT, OUTPUT);   
-    /* Setting initial values*/
-    digitalWrite(COMM_ENABLE_OUT, HIGH);
+void Control_appl_SMC( Control_t *pControl ){
+    switch (pControl->SMC_State){
+        case SMC_State_Idle:
+        {
+            //A inicialização do módulo pode ser feita aqui, pois este estado será chamado apena na primeira chamada desta máquina de estados
+            Control_appl_Request_ChangeOf_SMC_State(pControl, SMC_State_Read_S1);
+            break;
+        }
+        case SMC_State_Read_S1:   /* Controlling of module based on struct set_module */
+        {
+            Control_appl_Read_S1(pControl);
+            Control_appl_Request_ChangeOf_SMC_State(pControl, SMC_State_Read_S2);
+            break;
+        }
+        case SMC_State_Read_S2:   /* Return status of module on struct status_module */
+        {
+            Control_appl_Read_S2(pControl);
+            Control_appl_Request_ChangeOf_SMC_State(pControl, SMC_State_Read_S3);
+            break;
+        }
+        case SMC_State_Read_S3:   /* Controlling of module based on struct set_module */
+        {
+            Control_appl_Read_S3(pControl);
+            Control_appl_Request_ChangeOf_SMC_State(pControl, SMC_State_Read_S4);
+            break;
+        }
+        case SMC_State_Read_S4:   /* Return status of module on struct status_module */
+        {
+            Control_appl_Read_S4(pControl);
+            Control_appl_Request_ChangeOf_SMC_State(pControl, SMC_State_Read_S5);
+            break;
+        }
+        case SMC_State_Read_S5:   /* Return status of module on struct status_module */
+        {
+            Control_appl_Read_S5(pControl);
+            Control_appl_Request_ChangeOf_SMC_State(pControl, SMC_State_Read_S1);
+            break;
+        }
+        case SMC_State_Error:
+        {
+            /* ToDo[PENS] error handler */
+            Control_appl_Request_ChangeOf_SMC_State(pControl, SMC_State_Idle);
+            break;
+        } 
+        default:
+        {
+            /* ToDo[PENS] - default handler */
+            Control_appl_Request_ChangeOf_SMC_State(pControl, SMC_State_Idle);
+        }
+    }
 }
 
 
 /********************************************************************************************************************************************************************************************************************************************************
-  @Brief: Setting UARTs
+  @Brief: Setting GPIOs
 *********************************************************************************************************************************************************************************************************************************************************/
-void Config_configUART()
+void Control_appl_Request_ChangeOf_SMC_State( Control_t *pControl, SMC_States_t nextState)
 {
-    /* Setting UART0 - Used to debug */
-    Serial.begin(19200);
-    if( DEBUG ){
-        Serial.printf("SDK version using ESP object: %s\n", ESP.getSdkVersion()); /* Using ESP object */
-        Serial.printf("SDK version using low level function: %s\n", esp_get_idf_version()); /* Using low level function */
-    } 
-    /* Setting UART2 - Used to serial communication whith slaves modules */
-    Serial2.begin(19200);
-    uart_set_line_inverse(UART_ID, UART_INVERSE_TXD);  /* Invert level of Tx line */
-    gpio_set_pull_mode(RXD_PIN, GPIO_FLOATING);  /* Turn-off pull-up and pull-down of UART RX pin */
+    pControl->SMC_State = nextState;
 }
 
 
 /********************************************************************************************************************************************************************************************************************************************************
-  @Brief: Setting Wifi
+  @Brief: Read SENSOR 1
 *********************************************************************************************************************************************************************************************************************************************************/
-void Config_configWIFI(void (*fCallback)(WiFiEvent_t, WiFiEventInfo_t info), EventGroupHandle_t * event_group)
+void Control_appl_Read_S1( Control_t *pControl )
 {
-    WiFi.onEvent(fCallback);
-    wifi_init_sta();
+    pControl->module.sensor_1.type  = 0x00;
+    pControl->module.sensor_1.value = 0x00;
 }
 
 
 /********************************************************************************************************************************************************************************************************************************************************
-  Descrição: Função que configura e inicializa o driver WiFi do ESP no modo Station
+  @Brief: Read SENSOR 2
 *********************************************************************************************************************************************************************************************************************************************************/
-void wifi_init_sta( void )
+void Control_appl_Read_S2( Control_t *pControl )
 {
-    WiFi.disconnect();
-    delay(500);
-    WiFi.begin(wifi_STA_SSID, wifi_STA_PASSWORD);
+    pControl->module.sensor_2.type  = 0x00;
+    pControl->module.sensor_2.value = 0x00;
 }
 
 
 /********************************************************************************************************************************************************************************************************************************************************
-  Descrição: Função que configura e inicializa o driver WiFi do ESP no modo AP (Access Point)
+  @Brief: Read SENSOR 3
 *********************************************************************************************************************************************************************************************************************************************************/
-void wifi_init_ap( void )
+void Control_appl_Read_S3( Control_t *pControl )
 {
-    Serial.println("Inicializando Modo AP");
-    WiFi.disconnect();
-    delay(500);
-    WiFi.softAP(wifi_AP_SSID, wifi_AP_PASSWORD);
+    pControl->module.sensor_3.type  = 0x00;
+    pControl->module.sensor_3.value = 0x00;
+}
+
+
+/********************************************************************************************************************************************************************************************************************************************************
+  @Brief: Read SENSOR 4
+*********************************************************************************************************************************************************************************************************************************************************/
+void Control_appl_Read_S4( Control_t *pControl )
+{
+    pControl->module.sensor_4.type  = 0x00;
+    pControl->module.sensor_4.value = 0x00;
+}
+
+
+/********************************************************************************************************************************************************************************************************************************************************
+  @Brief: Read SENSOR 5
+*********************************************************************************************************************************************************************************************************************************************************/
+void Control_appl_Read_S5( Control_t *pControl )
+{
+    pControl->module.sensor_5.type  = 0x00;
+    pControl->module.sensor_5.value = 0x00;
 }

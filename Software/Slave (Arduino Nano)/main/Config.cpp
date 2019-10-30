@@ -37,10 +37,10 @@ void Config_configGPIO()    /* Initial hardware configuration */
     /* Setting initial values*/
     digitalWrite(COMM_ENABLE_OUT, HIGH);
     digitalWrite(LED_ON_BOARD, LOW);
-    digitalWrite(_STATE_CTRL_PLUG_1, LOW);
-    digitalWrite(_STATE_CTRL_PLUG_2, LOW);
-    digitalWrite(_STATE_CTRL_PLUG_3, LOW);
-    digitalWrite(_STATE_CTRL_PLUG_4, LOW);
+    digitalWrite(_STATE_CTRL_PLUG_1, HIGH);
+    digitalWrite(_STATE_CTRL_PLUG_2, HIGH);
+    digitalWrite(_STATE_CTRL_PLUG_3, HIGH);
+    digitalWrite(_STATE_CTRL_PLUG_4, HIGH);
 }
 #endif
 
@@ -52,16 +52,17 @@ void Config_configGPIO()
     /* Digital outputs */
     pinMode(COMM_ENABLE_OUT, OUTPUT);       /* D3 board pin */
     pinMode(LED_ON_BOARD, OUTPUT);          /* GPIO 13 used to led blink */
-    pinMode(_CTRL_LIGTH_1, OUTPUT);         /* D4 board pin */
-    pinMode(_CTRL_LIGTH_2, OUTPUT);         /* D5 board pin */
-    pinMode(_CTRL_LIGTH_3, OUTPUT);         /* D6 board pin */
+    pinMode(_CTRL_LIGTH_4, OUTPUT);         /* D4 board pin */
+    pinMode(_CTRL_LIGTH_5, OUTPUT);         /* D5 board pin */
+    pinMode(_CTRL_LIGTH_6, OUTPUT);         /* D6 board pin */
+    pinMode(_CTRL_LIGTH_7, OUTPUT);         /* D7 board pin */
+    pinMode(_CTRL_LIGTH_9, OUTPUT);         /* D9 board pin */
+    pinMode(_CTRL_LIGTH_10, OUTPUT);        /* D10 board pin */
     
     /* Setting initial values*/
     digitalWrite(COMM_ENABLE_OUT, HIGH);
     digitalWrite(LED_ON_BOARD, LOW);
-    digitalWrite(_CTRL_LIGTH_1, LOW);
-    digitalWrite(_CTRL_LIGTH_2, LOW);
-    digitalWrite(_CTRL_LIGTH_3, LOW);
+
 }
 #endif
 

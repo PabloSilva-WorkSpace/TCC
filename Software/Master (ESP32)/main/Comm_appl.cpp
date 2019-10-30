@@ -41,6 +41,7 @@ byte Comm_appl_FSM( Uart_t *pUart )
         case FSM_State_Send:   /* Start execute of frame sending on bus */
         {
             int TxBuff_Length;
+            Comm_appl_Prepara_QueryID();
             TxBuff_Length = Comm_appl_FrameToBuffer(pUart);
             Comm_protocol_Frame_Send_Request(&pUart->TxBuffer, TxBuff_Length);
             Comm_appl_Request_ChangeOf_FSM_State(pUart, FSM_State_Sending);
@@ -186,7 +187,7 @@ byte Comm_appl_RHM(Uart_t *pUart)
                 pUart->scheduleTable.pFirstSlot->frame.Type = 0x01;                 /* Tipo de módulo transmissor: {0x01 = Master} */
                 pUart->scheduleTable.pFirstSlot->frame.Id_Source = 0x01;            /* ID do módulo transmissor: {0x01 = Master} */
                 pUart->scheduleTable.pFirstSlot->frame.Id_Target = 0xFF;            /* ID do módulo alvo: {0xFF = Broadcast} */
-                pUart->scheduleTable.pFirstSlot->frame.Lenght = 0x01;               /* Comprimento da mensagem: {(X: Dados) + (1: Checksum)} */
+                pUart->scheduleTable.pFirstSlot->frame.Lenght = 13;               /* Comprimento da mensagem: {(X: Dados) + (1: Checksum)} */
                 pUart->scheduleTable.pFirstSlot->frame.Checksum = 0x00;             /* Checksum */
             }
             Comm_appl_Request_ChangeOf_RHM_State(pUart, RHM_State_Idle);
@@ -282,6 +283,30 @@ void Comm_appl_Set_Frame_Checksum(Frame_t *pFrame)
 
 /********************************************************************************************************************************************************************************************************************************************************
     Função
+    Descrição: Prepara os dados do primeiro slot para transmitirem os valores dos sensores e a hora, caso o primeiro slot esteja configurado como serviço QUERY_ID
+*********************************************************************************************************************************************************************************************************************************************************/
+void Comm_appl_Prepara_QueryID( void )
+{
+    if (mainData.uart.scheduleTable.slot[0].frame.SID == 0x01) {
+        /* Atualizar os campos TIPO e VALOR referente aos sensores no frame do primeiro slot (slot de configuração) */
+        mainData.uart.scheduleTable.slot[0].frame.Data[_S1_TYPE]  = mainData.control.module.sensor_1.type;
+        mainData.uart.scheduleTable.slot[0].frame.Data[_S1_VALUE] = mainData.control.module.sensor_1.value;
+        mainData.uart.scheduleTable.slot[0].frame.Data[_S2_TYPE]  = mainData.control.module.sensor_2.type;
+        mainData.uart.scheduleTable.slot[0].frame.Data[_S2_VALUE] = mainData.control.module.sensor_2.value;
+        mainData.uart.scheduleTable.slot[0].frame.Data[_S3_TYPE]  = mainData.control.module.sensor_3.type;
+        mainData.uart.scheduleTable.slot[0].frame.Data[_S3_VALUE] = mainData.control.module.sensor_3.value;
+        mainData.uart.scheduleTable.slot[0].frame.Data[_S4_TYPE]  = mainData.control.module.sensor_4.type;
+        mainData.uart.scheduleTable.slot[0].frame.Data[_S4_VALUE] = mainData.control.module.sensor_4.value;
+        mainData.uart.scheduleTable.slot[0].frame.Data[_S5_TYPE]  = mainData.control.module.sensor_5.type;
+        mainData.uart.scheduleTable.slot[0].frame.Data[_S5_VALUE] = mainData.control.module.sensor_5.value;
+        mainData.uart.scheduleTable.slot[0].frame.Data[_HOUR_MSB] = mainData.control.module.hour_msb;
+        mainData.uart.scheduleTable.slot[0].frame.Data[_HOUR_LSB] = mainData.control.module.hour_lsb;
+    }
+}
+
+
+/********************************************************************************************************************************************************************************************************************************************************
+    Função
     Descrição: Esta função configura o Buffer Tx que será passado para a camada Comm_protocol transmitir na UART
 *********************************************************************************************************************************************************************************************************************************************************/
 int Comm_appl_FrameToBuffer(Uart_t *pUart)
@@ -345,7 +370,7 @@ int Comm_appl_Check_Frame_IsValid(Uart_t *pUart)
 *********************************************************************************************************************************************************************************************************************************************************/
 void Comm_appl_Create_Schedule_Table(ScheduleTable_t * pScheduleTable)
 {
-    byte Data[] = {}; //byte (*Data)[] = {0xA9, 0x1C, 0x47};
+    byte Data[] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}; //byte (*Data)[] = {0xA9, 0x1C, 0x47};
     byte ID_Master = 0x01;
     int i, j;
     /* Inicialização do array de slots usados na schedule table */
@@ -360,7 +385,7 @@ void Comm_appl_Create_Schedule_Table(ScheduleTable_t * pScheduleTable)
     pScheduleTable->pSlot->nextSlot = pScheduleTable->pSlot;
     pScheduleTable->Length = 1;
     /* Configuração inicial do primeiro slot (slot para mensagens de configuração dos slaves) */
-    Comm_appl_Set_Frame_Header(&pScheduleTable->pSlot->frame, 0x00, 0x55, 0x01, 0x01, 0x01, 0xFF, sizeof(Data) + 0x01);
+    Comm_appl_Set_Frame_Header(&pScheduleTable->pSlot->frame, 0x00, 0x55, 0x01, 0x01, 0x01, 0xFF, 13); //12 Data + 1 Checksum
     Comm_appl_Set_Frame_Data(&pScheduleTable->pSlot->frame, Data, sizeof(Data));
     Comm_appl_Set_Frame_Checksum(&pScheduleTable->pSlot->frame);
 }
@@ -519,7 +544,8 @@ static Kostia_Rsp_t Comm_appl_FindCommand(byte *pAddr, Uart_t *pUart)
 static Kostia_Rsp_t Comm_appl_QueryID_Callback(byte *pCmd, Uart_t *pUart)
 {
     Serial.println("Query ID callback");
-    if(pUart->scheduleTable.pFirstSlot->frame.Id_Source == 0x01 && pUart->scheduleTable.Length < _SCHEDULE_TABLE_MAX_SIZE){      
+    if(pUart->scheduleTable.Length < _SCHEDULE_TABLE_MAX_SIZE){
+        Serial.println("true");
         pUart->scheduleTable.pFirstSlot->frame.Break = 0x00;                                                              /* Break signal */
         pUart->scheduleTable.pFirstSlot->frame.Synch = 0x55;                                                              /* Synch signal */
         pUart->scheduleTable.pFirstSlot->frame.SID = 0x02;                                                                /* Identificador de serviço da mensagem */
@@ -529,13 +555,13 @@ static Kostia_Rsp_t Comm_appl_QueryID_Callback(byte *pCmd, Uart_t *pUart)
         pUart->scheduleTable.pFirstSlot->frame.Lenght = 0x01;                                                             /* Comprimento da mensagem */
         pUart->scheduleTable.pFirstSlot->frame.Checksum = 0x00;                                                           /* Checksum */
         /* Put pSlot in last slot */
-        //pUart->scheduleTable.pSlot = pUart->scheduleTable.pLastSlot;  /* Teste_1: deletar slot que não responder 3x */
         pUart->scheduleTable.pSlot = pUart->scheduleTable.pFirstSlot;   /* Teste_1: deletar slot que não responder 3x */
         return KOSTIA_OK;
-    }else if(pUart->scheduleTable.Length == _SCHEDULE_TABLE_MAX_SIZE){
+    }else if(pUart->scheduleTable.Length >= _SCHEDULE_TABLE_MAX_SIZE){
         Serial.println("Overflow on schedule table ");
         return KOSTIA_OK;
     }else{
+        Serial.println("else");
         return KOSTIA_NOK;
     }
 }
@@ -560,7 +586,7 @@ static Kostia_Rsp_t Comm_appl_SetID_Callback(byte *pCmd, Uart_t *pUart)
         pUart->scheduleTable.pFirstSlot->frame.Type = 0x01;                 /* Tipo de módulo transmissor */
         pUart->scheduleTable.pFirstSlot->frame.Id_Source = 0x01;            /* ID do módulo transmissor */
         pUart->scheduleTable.pFirstSlot->frame.Id_Target = 0xFF;            /* ID do módulo alvo */
-        pUart->scheduleTable.pFirstSlot->frame.Lenght = 0x01;               /* Comprimento da mensagem */
+        pUart->scheduleTable.pFirstSlot->frame.Lenght = 13;               /* Comprimento da mensagem */
         pUart->scheduleTable.pFirstSlot->frame.Checksum = 0x00;             /* Checksum */
         /* Insert new slot in schedule table */
         Comm_appl_Insert_Slot(&pUart->scheduleTable);
@@ -595,7 +621,7 @@ static Kostia_Rsp_t Comm_appl_ConfigSlave_Callback(byte *pCmd, Uart_t *pUart)
         pUart->scheduleTable.pFirstSlot->frame.Type = 0x01;                 /* Tipo de módulo transmissor: {0x01 = Master} */
         pUart->scheduleTable.pFirstSlot->frame.Id_Source = 0x01;            /* ID do módulo transmissor: {0x01 = Master} */
         pUart->scheduleTable.pFirstSlot->frame.Id_Target = 0xFF;            /* ID do módulo alvo: {0xFF = Broadcast} */
-        pUart->scheduleTable.pFirstSlot->frame.Lenght = 0x01;               /* Comprimento da mensagem: {(X: Dados) + (1: Checksum)} */
+        pUart->scheduleTable.pFirstSlot->frame.Lenght = 13;               /* Comprimento da mensagem: {(X: Dados) + (1: Checksum)} */
         pUart->scheduleTable.pFirstSlot->frame.Checksum = 0x00;             /* Checksum */
         /* Put pSlot in last slot */
         pUart->scheduleTable.pSlot = pUart->scheduleTable.pFirstSlot;       /* Retorna o ponteiro da scheduletable para o primeiro slot (Slot de configuração) */
@@ -617,8 +643,38 @@ static Kostia_Rsp_t Comm_appl_ConfigSlave_Callback(byte *pCmd, Uart_t *pUart)
 *********************************************************************************************************************************************************************************************************************************************************/
 static Kostia_Rsp_t Comm_appl_RequestData_Callback(byte *pCmd, Uart_t *pUart)
 {
-    /* Chamar as funções que irão manipular essas respostas. Chamar as funções baseadas nos tipo de slave que respondeu */
-    return KOSTIA_NOK;
+    /* Trata a resposta de um módulo PLUG*/
+    if( pUart->RxBuffer[_TYPE] == _TYPE_MODULE_PLUG ){        
+        /* PLUG 1 */
+        mainData.module_plug.plug_1.id      = pUart->RxBuffer[_DATA_D0];
+        mainData.module_plug.plug_1.mode    = pUart->RxBuffer[_DATA_D1];
+        mainData.module_plug.plug_1.on_off  = pUart->RxBuffer[_DATA_D2];
+        mainData.module_plug.plug_1.potency = pUart->RxBuffer[_DATA_D3];
+        /* PLUG 2 */
+        mainData.module_plug.plug_2.id      = pUart->RxBuffer[_DATA_D4];
+        mainData.module_plug.plug_2.mode    = pUart->RxBuffer[_DATA_D5];
+        mainData.module_plug.plug_2.on_off  = pUart->RxBuffer[_DATA_D6];
+        mainData.module_plug.plug_2.potency = pUart->RxBuffer[_DATA_D7];
+        /* PLUG 3 */
+        mainData.module_plug.plug_3.id      = pUart->RxBuffer[_DATA_D8];
+        mainData.module_plug.plug_3.mode    = pUart->RxBuffer[_DATA_D9];
+        mainData.module_plug.plug_3.on_off  = pUart->RxBuffer[_DATA_D10];
+        mainData.module_plug.plug_3.potency = pUart->RxBuffer[_DATA_D11];
+        /* PLUG 4 */
+        mainData.module_plug.plug_4.id      = pUart->RxBuffer[_DATA_D12];
+        mainData.module_plug.plug_4.mode    = pUart->RxBuffer[_DATA_D13];
+        mainData.module_plug.plug_4.on_off  = pUart->RxBuffer[_DATA_D14];
+        mainData.module_plug.plug_4.potency = pUart->RxBuffer[_DATA_D15];
+        return KOSTIA_OK;
+    }
+    /* Trata a resposta de um módulo LIGHT */
+    else if( pUart->RxBuffer[_TYPE] == _TYPE_MODULE_LIGHT ){   
+        
+        return KOSTIA_OK;
+    }
+    else{
+        return KOSTIA_NOK;
+    }
 }
 
 

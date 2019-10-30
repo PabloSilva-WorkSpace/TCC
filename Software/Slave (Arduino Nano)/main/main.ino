@@ -20,12 +20,16 @@
     ### Extern Global Variables
 *********************************************************************************************************************************************************************************************************************************************************/
 #ifdef _MODULE_TYPE_PLUGS
-    Plugs_t module;
+    Plugs_t set_module;
     Plugs_t status_module;
+    Sensors_t sensor;
+    Time_t time_now;
 #endif
 #ifdef _MODULE_TYPE_LIGTH
-    Ligths_t module;
-    Ligths_t status_module;
+    Lights_t set_module;
+    Lights_t status_module;
+    Sensors_t sensor;   /* NOT USED */
+    Time_t time_now;
 #endif
 
 
@@ -105,7 +109,7 @@ void Task10ms(void)
 *********************************************************************************************************************************************************************************************************************************************************/
 void Task500ms(void)
 {
-    digitalWrite(LED_ON_BOARD, !digitalRead(LED_ON_BOARD));
+    //digitalWrite(LED_ON_BOARD, !digitalRead(LED_ON_BOARD));
 }
 
 

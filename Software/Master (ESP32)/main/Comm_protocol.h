@@ -36,6 +36,36 @@
 #define _LENGHT  (6U)
 #define _DATA    (7U)
 
+/* Range de valores referentes ao campo _TYPE */
+#define _TYPE_MODULE_PLUG   (0x02)
+#define _TYPE_MODULE_LIGHT  (0x03)
+/* Range de valores referentes ao campo _DATA */
+#define _DATA_D0  (7U)
+#define _DATA_D1  (8U)
+#define _DATA_D2  (9U)
+#define _DATA_D3  (10U)
+#define _DATA_D4  (11U)
+#define _DATA_D5  (12U)
+#define _DATA_D6  (13U)
+#define _DATA_D7  (14U)
+#define _DATA_D8  (15U)
+#define _DATA_D9  (16U)
+#define _DATA_D10 (17U)
+#define _DATA_D11 (18U)
+#define _DATA_D12 (19U)
+#define _DATA_D13 (20U)
+#define _DATA_D14 (21U)
+#define _DATA_D15 (22U)
+#define _DATA_D16 (23U)
+#define _DATA_D17 (24U)
+#define _DATA_D18 (25U)
+#define _DATA_D19 (26U)
+#define _DATA_D20 (27U)
+#define _DATA_D21 (28U)
+#define _DATA_D22 (29U)
+#define _DATA_D23 (30U)
+#define _DATA_D24 (31U)
+
 
 /******************************************************************************************************************************************************************************************************************************************************** 
     ### Data Types 

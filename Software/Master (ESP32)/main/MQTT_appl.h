@@ -24,6 +24,74 @@
 /******************************************************************************************************************************************************************************************************************************************************** 
     ### Defines 
 *********************************************************************************************************************************************************************************************************************************************************/
+/* Length of MQTT received message */
+#define _PLUG_MESSAGE_CONFIG_SIZE   (0x05) /*  */
+/* Fields in MQTT received message */
+#define _FIELD_PLUG_ID         (0)
+#define _FIELD_PLUG_MODE       (1)
+#define _FIELD_PLUG_PARAM_1    (2)
+#define _FIELD_PLUG_PARAM_2    (3)
+#define _FIELD_PLUG_PARAM_3    (4)
+/* Datas in frame to send in UART */
+#define _PLUG_ID               (0)
+#define _PLUG_MODE             (1)
+#define _PLUG_ON_OFF           (2)
+#define _PLUG_SENSOR_ID        (3)
+#define _PLUG_MIN_MAX          (4)
+#define _PLUG_SET_POINT        (5)
+#define _PLUG_HOUR_ON_MSB      (6)
+#define _PLUG_HOUR_ON_LSB      (7)
+#define _PLUG_HOUR_OFF_MSB     (8)
+#define _PLUG_HOUR_OFF_LSB     (9)
+/* frame.Data[_PLUG_MODE] */
+#define _MANUAL      (0x00)
+#define _AUTO_2      (0x02)
+#define _AUTO_3      (0x03)
+
+
+/* Length of MQTT received message */
+#define _LIGHT_MESSAGE_CONFIG_SIZE    (0x0B)  /* O aplicativo envia 11 campos de configuração referente ao módulo LIGHT */
+/* Fields in MQTT received message */
+#define _FIELD_LIGHT_START            (0)
+#define _FIELD_LIGHT_DAY              (1)
+#define _FIELD_LIGHT_NIGHT            (2)
+#define _FIELD_LIGHT_SWEEP_TIME       (3)
+#define _FIELD_LIGHT_PWM_WHITE_DAY    (4)
+#define _FIELD_LIGHT_PWM_WHITE_NIGHT  (5)
+#define _FIELD_LIGHT_PWM_BLUE_DAY     (6)
+#define _FIELD_LIGHT_PWM_BLUE_NIGHT   (7)
+#define _FIELD_LIGHT_PWM_RED_DAY      (8)
+#define _FIELD_LIGHT_PWM_RED_NIGHT    (9)
+#define _FIELD_LIGHT_NOT_USED         (10)
+/* Datas in frame to send in UART */
+#define _LIGHT_START_HOUR       (0)
+#define _LIGHT_START_MIN        (1)
+#define _LIGHT_DAY_HOUR         (2)
+#define _LIGHT_DAY_MIN          (3)
+#define _LIGHT_NIGHT_HOUR       (4)
+#define _LIGHT_NIGHT_MIN        (5)
+#define _LIGHT_SWEEP_TIME       (6)
+#define _LIGHT_PWM_WHITE_DAY    (7)
+#define _LIGHT_PWM_WHITE_NIGHT  (8)
+#define _LIGHT_PWM_BLUE_DAY     (9)
+#define _LIGHT_PWM_BLUE_NIGHT   (10)
+#define _LIGHT_PWM_RED_DAY      (11)
+#define _LIGHT_PWM_RED_NIGHT    (12)
+/* frame.Data[_PLUG_MODE] */
+#define _MANUAL      (0x00)
+#define _AUTO_2      (0x02)
+#define _AUTO_3      (0x03)
+/* frame.Data[_PLUG_MODE] */
+#define _TEMPERATURA (0x00)
+#define _SALINIDADE  (0x01)
+#define _NIVEL       (0x02)
+#define _PH          (0x03)
+/* frame.Data[_PLUG_MODE] */
+#define _MIN         (0x00)
+#define _MAX         (0x01)
+/* frame.Data[_PLUG_MODE] */
+#define _OFF         (0x00)
+#define _ON          (0x01) 
 
 
 /******************************************************************************************************************************************************************************************************************************************************** 
@@ -40,6 +108,7 @@
     ### Functions Prototypes 
 *********************************************************************************************************************************************************************************************************************************************************/
 void MQTT_appl_Start_MQTT_Client( void );
+void MQTT_appl_Client_Loop( void );
 void MQTT_appl_Send_Message( void );
 void MQTT_fCallback(char* topic, byte* payload, unsigned int payloadLength);
 

@@ -122,6 +122,7 @@ void Comm_appl_Set_Frame_Checksum( Frame_t * );
 int Comm_appl_FrameToBuffer( Uart_t * );
 int Comm_appl_Check_Frame_IsEcho( Uart_t * );
 int Comm_appl_Check_Frame_IsValid( Uart_t * );
+void Comm_appl_Prepara_QueryID( void );
 
 void Comm_appl_Create_Schedule_Table( ScheduleTable_t * );
 void Comm_appl_Insert_Slot( ScheduleTable_t * );

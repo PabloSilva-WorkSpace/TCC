@@ -57,15 +57,16 @@ void wifi_event_handler( WiFiEvent_t event, WiFiEventInfo_t info )
         /* Evento disparado quando o ESP perde a conexão com a rede WiFi ou quando a tentativa de conexão não ocorrer */
         case SYSTEM_EVENT_STA_DISCONNECTED:{
             xEventGroupClearBits( gWiFi_appl_event_group, WIFI_STA_CONNECTED_BIT );   /* Sinalizar, ou informar, por meio deste event group que o ESP32 perdeu a conexão com o AP da rede WiFi configurada */
-            if(nAttempts < 3){
-                Serial.println("WiFi: ESP32 realizará nova tentativa de conexão com o AP");
-                wifi_init_sta();
-                nAttempts++;
-            } else{
-                Serial.println("WiFi: ESP32 não conseguiu conectar-se ao AP configurado");
-                wifi_init_ap();   /* Configuração do driver WiFi para o modo AP, a fim de configurar o ESP para tentar conectar em outra rede WiFi */
-                nAttempts = 0;
-            }
+            wifi_init_sta();
+//            if(nAttempts < 3){
+//                Serial.println("WiFi: ESP32 realizará nova tentativa de conexão com o AP");
+//                wifi_init_sta();
+//                nAttempts++;
+//            } else{
+//                Serial.println("WiFi: ESP32 não conseguiu conectar-se ao AP configurado");
+//                wifi_init_ap();   /* Configuração do driver WiFi para o modo AP, a fim de configurar o ESP para tentar conectar em outra rede WiFi */
+//                nAttempts = 0;
+//            }
             break;
         }
         /* Evento disparado quando o stack tcp for inicializado */

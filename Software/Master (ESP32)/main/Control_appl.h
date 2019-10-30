@@ -1,17 +1,12 @@
 /******************************************************************************************************************************************************************************************************************************************************** 
- * Config.h
+ * Control_appl.h
  * 
  * ToDo[PS]-  Need to insert comments
 *********************************************************************************************************************************************************************************************************************************************************/
 
-#include "main.h"
-#include <WiFiUdp.h>
-#include <NTPClient.h>
-#define ONE_WIRE_BUS 2 
-#include <OneWire.h> 
-#include <DallasTemperature.h>
 
-extern MainData_t mainData;     /* Main Data of Module */
+#ifndef _CONTROL_APPL_H
+#define _CONTROL_APPL_H
 
 
 /********************************************************************************************************************************************************************************************************************************************************
@@ -27,33 +22,40 @@ extern MainData_t mainData;     /* Main Data of Module */
 /******************************************************************************************************************************************************************************************************************************************************** 
     ### Defines 
 *********************************************************************************************************************************************************************************************************************************************************/
-#define _S1        (0)  /* Sensor 1 Pin */
-#define _S1_TYPE   (0)  /* Sensor 1 Type:  Will be insert in frame Data[0] */
-#define _S1_VALUE  (1)  /* Sensor 1 Value: Will be insert in frame Data[1] */
-
-#define _S2        (0)  /* Sensor 2 Pin */
-#define _S2_TYPE   (2)  /* Sensor 2 Type:  Will be insert in frame Data[2] */
-#define _S2_VALUE  (3)  /* Sensor 2 Value: Will be insert in frame Data[3] */
-
-#define _S3        (0)  /* Sensor 3 Pin */
-#define _S3_TYPE   (4)  /* Sensor 3 Type:  Will be insert in frame Data[4] */
-#define _S3_VALUE  (5)  /* Sensor 3 Value: Will be insert in frame Data[5] */
-
-#define _S4        (0)  /* Sensor 4 Pin */
-#define _S4_TYPE   (6)  /* Sensor 4 Type:  Will be insert in frame Data[6] */
-#define _S4_VALUE  (7)  /* Sensor 4 Value: Will be insert in frame Data[7] */
-
-#define _S5        (0)  /* Sensor 5 Pin */
-#define _S5_TYPE   (8)  /* Sensor 5 Type:  Will be insert in frame Data[8] */
-#define _S5_VALUE  (9)  /* Sensor 5 Value: Will be insert in frame Data[9] */
-
-#define _HOUR_MSB  (10)  /* Sensor 5 Type:  Will be insert in frame Data[8] */
-#define _HOUR_LSB  (11)  /* Sensor 5 Value: Will be insert in frame Data[9] */
 
 
 /******************************************************************************************************************************************************************************************************************************************************** 
     ### Data Types 
 *********************************************************************************************************************************************************************************************************************************************************/
+typedef struct{
+    byte type;
+    byte value;
+}Sensor_t;
+    
+typedef struct{
+    Sensor_t sensor_1;
+    Sensor_t sensor_2;
+    Sensor_t sensor_3;
+    Sensor_t sensor_4;
+    Sensor_t sensor_5;
+    byte hour_msb;
+    byte hour_lsb;
+}Sensors_t;
+
+typedef enum {
+    SMC_State_Idle    = 0,
+    SMC_State_Read_S1 = 1,
+    SMC_State_Read_S2 = 2,
+    SMC_State_Read_S3 = 3,
+    SMC_State_Read_S4 = 4,
+    SMC_State_Read_S5 = 5,
+    SMC_State_Error   = 6,
+}SMC_States_t;
+
+typedef struct{
+    Sensors_t module;                           /* Estrutura que conterá os TIPO e VALOR de cada sensor conectado ao módulo (O ESP32 também faz a função de módulo de sensores). Esta estrutura fornecerá as informações dos sensores para serem enviadas no barramento */
+    SMC_States_t SMC_State =  SMC_State_Idle;   /* Variável enumerada que armazenará o estado da máquina de enviar frame (Frame Sending Machine) */
+}Control_t;
 
 
 /******************************************************************************************************************************************************************************************************************************************************** 
@@ -64,3 +66,14 @@ extern MainData_t mainData;     /* Main Data of Module */
 /******************************************************************************************************************************************************************************************************************************************************** 
     ### Functions Prototypes 
 *********************************************************************************************************************************************************************************************************************************************************/
+void Control_appl_SMC( Control_t * );   /* SMC = States Machine of Controlling (Máquina de Estados do Controle) */
+void Control_appl_Request_ChangeOf_SMC_State( Control_t *, SMC_States_t );
+
+void Control_appl_Read_S1( Control_t * );
+void Control_appl_Read_S2( Control_t * );
+void Control_appl_Read_S3( Control_t * );
+void Control_appl_Read_S4( Control_t * );
+void Control_appl_Read_S5( Control_t * );
+
+
+#endif
